@@ -36,20 +36,18 @@ class LibraryImageService
     public function createImage(
         UploadedFile $file,
         string $title = null,
-        string $slug = null,
         string $locale = null
     ): LibraryImage {
-        return $this->createOrUpdateImage($file, $title, $slug, $locale);
+        return $this->createOrUpdateImage($file, $title, $locale);
     }
 
     public function updateImage(
         $imageId,
         UploadedFile $file = null,
         string $title = null,
-        string $slug = null,
         string $locale = null
     ): LibraryImage {
-        return $this->createOrUpdateImage($file, $title, $slug, $locale, $imageId);
+        return $this->createOrUpdateImage($file, $title, $locale, $imageId);
     }
 
     public function deleteImage(
@@ -117,7 +115,6 @@ class LibraryImageService
     protected function createOrUpdateImage(
         UploadedFile $file = null,
         string $title = null,
-        string $slug = null,
         string $locale = null,
         int $imageId = null
     ) {
@@ -141,10 +138,6 @@ class LibraryImageService
 
         if (null != $title) {
             $image->setTitle($title);
-        }
-
-        if (null != $slug) {
-            $image->setSlug($slug);
         }
 
         if (null !== $file) {

@@ -33,10 +33,6 @@ class ImageController extends BaseAdminOpenApiController
      *                      type="string",
      *                  ),
      *                   @OA\Property(
-     *                      property="slug",
-     *                      type="string",
-     *                  ),
-     *                   @OA\Property(
      *                      property="locale",
      *                      type="string",
      *                  ),
@@ -71,7 +67,6 @@ class ImageController extends BaseAdminOpenApiController
         $image = $libraryImageService->createImage(
             $request->files->get('image'),
             $request->request->get('title'),
-            $request->request->get('slug'),
             $locale
         );
 
@@ -102,10 +97,6 @@ class ImageController extends BaseAdminOpenApiController
      *             @OA\Schema(
      *                   @OA\Property(
      *                      property="title",
-     *                      type="string",
-     *                  ),
-     *                   @OA\Property(
-     *                      property="slug",
      *                      type="string",
      *                  ),
      *                   @OA\Property(
@@ -144,7 +135,6 @@ class ImageController extends BaseAdminOpenApiController
             $imageId,
             $request->files->get('image'),
             $request->request->get('title'),
-            $request->request->get('slug'),
             $locale
         );
 

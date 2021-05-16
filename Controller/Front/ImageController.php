@@ -31,13 +31,6 @@ class ImageController extends BaseFrontOpenApiController
      *          )
      *     ),
      *     @OA\Parameter(
-     *          name="slug",
-     *          in="query",
-     *          @OA\Schema(
-     *              type="string"
-     *          )
-     *     ),
-     *     @OA\Parameter(
      *          name="offset",
      *          in="query",
      *          @OA\Schema(
@@ -94,10 +87,6 @@ class ImageController extends BaseFrontOpenApiController
 
         if (null !== $id = $request->get('id')) {
             $imageQuery->filterById($id);
-        }
-
-        if (null !== $slug = $request->get('slug')) {
-            $imageQuery->filterBySlug($slug);
         }
 
         if (null !== $limit = $request->get('limit', 20)) {

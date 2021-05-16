@@ -40,6 +40,10 @@ class ItemImageController extends BaseAdminOpenApiController
      *                      type="integer",
      *                  ),
      *                   @OA\Property(
+     *                      property="code",
+     *                      type="string",
+     *                  ),
+     *                   @OA\Property(
      *                      property="visible",
      *                      type="boolean",
      *                  )
@@ -72,6 +76,7 @@ class ItemImageController extends BaseAdminOpenApiController
             $openApiLibraryItemImage->getImageId(),
             $openApiLibraryItemImage->getItemType(),
             $openApiLibraryItemImage->getItemId(),
+            $openApiLibraryItemImage->getCode(),
             $openApiLibraryItemImage->isVisible(),
             $openApiLibraryItemImage->getPosition()
         );
@@ -100,6 +105,10 @@ class ItemImageController extends BaseAdminOpenApiController
      *                   @OA\Property(
      *                      property="visible",
      *                      type="boolean",
+     *                  ),
+     *                  @OA\Property(
+     *                      property="code",
+     *                      type="string",
      *                  ),
      *                   @OA\Property(
      *                      property="position",
@@ -135,6 +144,7 @@ class ItemImageController extends BaseAdminOpenApiController
 
         $image = $libraryItemImageService->updateImageAssociation(
             $itemImageId,
+            $data['code']?? null,
             $data['visible']?? null,
             $data['position']?? null,
             $data['positionMovement']?? null

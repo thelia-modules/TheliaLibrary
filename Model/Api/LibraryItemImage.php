@@ -60,6 +60,14 @@ class LibraryItemImage extends BaseApiModel
     protected $itemId;
 
     /**
+     * @var string
+     * @OA\Property(
+     *     type="string",
+     * )
+     */
+    protected $code;
+
+    /**
      * @var boolean
      * @OA\Property(
      *     type="boolean",
@@ -162,6 +170,24 @@ class LibraryItemImage extends BaseApiModel
     public function setItemId(int $itemId): LibraryItemImage
     {
         $this->itemId = $itemId;
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getCode(): ?string
+    {
+        return $this->code;
+    }
+
+    /**
+     * @param string|null $code
+     * @return LibraryItemImage
+     */
+    public function setCode(?string $code): LibraryItemImage
+    {
+        $this->code = $code;
         return $this;
     }
 

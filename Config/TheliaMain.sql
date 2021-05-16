@@ -12,7 +12,6 @@ DROP TABLE IF EXISTS `library_image`;
 CREATE TABLE `library_image`
 (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `slug` VARCHAR(255),
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB;
 
@@ -28,6 +27,7 @@ CREATE TABLE `library_item_image`
     `image_id` INTEGER,
     `item_type` VARCHAR(255),
     `item_id` INTEGER,
+    `code` VARCHAR(255),
     `visible` TINYINT,
     `position` INTEGER,
     PRIMARY KEY (`id`),

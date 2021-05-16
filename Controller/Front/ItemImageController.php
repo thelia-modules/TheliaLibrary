@@ -40,6 +40,13 @@ class ItemImageController extends BaseFrontOpenApiController
      *          )
      *     ),
      *     @OA\Parameter(
+     *          name="code",
+     *          in="query",
+     *          @OA\Schema(
+     *              type="string"
+     *          )
+     *     ),
+     *     @OA\Parameter(
      *          name="offset",
      *          in="query",
      *          @OA\Schema(
@@ -85,6 +92,10 @@ class ItemImageController extends BaseFrontOpenApiController
             $itemImageQuery->filterByItemId($itemId);
         }
 
+        if (null !== $code = $request->get('code')) {
+            $itemImageQuery->filterByCode($code);
+        }
+
         if (null !== $limit = $request->get('limit', 20)) {
             $itemImageQuery->limit($limit);
         }
@@ -125,7 +136,7 @@ class ItemImageController extends BaseFrontOpenApiController
      *          )
      *     ),
      *     @OA\Parameter(
-     *          name="slug",
+     *          name="code",
      *          in="query",
      *          @OA\Schema(
      *              type="string"
@@ -202,10 +213,8 @@ class ItemImageController extends BaseFrontOpenApiController
             $itemImageQuery->filterByItemId($itemId);
         }
 
-        if (null !== $slug = $request->get('slug')) {
-            $itemImageQuery->useLibraryImageQuery()
-                ->filterBySlug($slug)
-                ->endUse();
+        if (null !== $code = $request->get('code')) {
+            $itemImageQuery->filterByCode($code);
         }
 
         if (true === $request->get('onlyVisible', true)) {

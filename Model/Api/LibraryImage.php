@@ -6,8 +6,6 @@ use OpenApi\Annotations as OA;
 use OpenApi\Model\Api\BaseApiModel;
 use OpenApi\Constraint as Constraint;
 use OpenApi\Model\Api\ModelFactory;
-use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Thelia\TaxEngine\TaxEngine;
@@ -39,14 +37,6 @@ class LibraryImage extends BaseApiModel
      * )
      */
     protected $title;
-
-    /**
-     * @var string
-     * @OA\Property(
-     *     type="string",
-     * )
-     */
-    protected $slug;
 
     /**
      * @var string
@@ -126,24 +116,6 @@ class LibraryImage extends BaseApiModel
     public function setTitle(?string $title): LibraryImage
     {
         $this->title = $title;
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    public function getSlug(): ?string
-    {
-        return $this->slug;
-    }
-
-    /**
-     * @param string $slug
-     * @return LibraryImage
-     */
-    public function setSlug(?string $slug): LibraryImage
-    {
-        $this->slug = $slug;
         return $this;
     }
 

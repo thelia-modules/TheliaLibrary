@@ -30,6 +30,7 @@ class LibraryItemImageService
         $imageId,
         $itemType,
         $itemId,
+        $code = null,
         $visible = true,
         $position = null
     ): LibraryItemImage
@@ -38,6 +39,7 @@ class LibraryItemImageService
             ->setImageId($imageId)
             ->setItemType($itemType)
             ->setItemId($itemId)
+            ->setCode($code)
             ->setVisible($visible);
 
         $itemImage->save();
@@ -51,6 +53,7 @@ class LibraryItemImageService
 
     public function updateImageAssociation(
         $itemImageId,
+        $code = null,
         $visible = true,
         $position = null,
         $positionMovement = null
@@ -64,6 +67,7 @@ class LibraryItemImageService
             throw new \Exception(Translator::getInstance()->trans("Can't update an item image that doesn't exist"));
         }
 
+        $itemImage->setCode($code);
         $itemImage->setVisible($visible);
         $itemImage->save();
 
