@@ -112,6 +112,70 @@ class ItemImageController extends BaseFrontOpenApiController
         ));
     }
 
+
+    /**
+     * @Route("/types", name="_type_list", methods="GET")
+     *
+     * @OA\Get(
+     *     path="/library/item_image/types",
+     *     tags={"Library image"},
+     *     summary="Get all item types availables",
+     *     @OA\Parameter(
+     *          name="onlyExisting",
+     *          description="If false basic Thelia types will be added (product, content, ...) even if they have no image associated",
+     *          in="query",
+     *          @OA\Schema(
+     *              type="boolean",
+     *              default="false"
+     *          )
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Success",
+     *          @OA\JsonContent(
+     *                  type="array",
+     *                  @OA\Items(
+     *                      type="string",
+     *                  )
+     *          )
+     *     ),
+     *     @OA\Response(
+     *          response="400",
+     *          description="Bad request",
+     *          @OA\JsonContent(ref="#/components/schemas/Error")
+     *     )
+     * )
+     */
+    public function getItemTypes(
+        Request $request
+    ) {
+        $itemTypes = array_map(
+            function (LibraryItemImage $libraryItemImage) {
+                return $libraryItemImage->getItemType();
+            },
+            iterator_to_array(LibraryItemImageQuery::create()
+            ->groupByItemType()
+            ->find())
+        );
+
+        if (false === $request->get('onlyExisting', false) || "false" === $request->get('onlyExisting', false))
+        {
+            $itemTypes = array_merge(
+                [
+                    'product',
+                    'category',
+                    'content',
+                    'folder',
+                ],
+                $itemTypes
+            );
+        }
+
+        return OpenApiService::jsonResponse(
+            $itemTypes
+        );
+    }
+
     protected function findLocale(Request $request)
     {
         $locale = $request->get('locale');

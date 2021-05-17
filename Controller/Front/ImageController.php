@@ -6,6 +6,7 @@ use OpenApi\Annotations as OA;
 use OpenApi\Controller\Front\BaseFrontOpenApiController;
 use OpenApi\Model\Api\ModelFactory;
 use OpenApi\Service\OpenApiService;
+use Propel\Runtime\ActiveQuery\Criteria;
 use Symfony\Component\Routing\Annotation\Route;
 use Thelia\Core\HttpFoundation\Request;
 use TheliaLibrary\Model\LibraryImage;
@@ -40,6 +41,13 @@ class ImageController extends BaseFrontOpenApiController
      *     ),
      *     @OA\Parameter(
      *          name="itemType",
+     *          in="query",
+     *          @OA\Schema(
+     *              type="string"
+     *          )
+     *     ),
+     *     @OA\Parameter(
+     *          name="title",
      *          in="query",
      *          @OA\Schema(
      *              type="string"
@@ -117,6 +125,13 @@ class ImageController extends BaseFrontOpenApiController
 
         if (null !== $id = $request->get('id')) {
             $imageQuery->filterById($id);
+        }
+
+        if (null !== $title = $request->get('title')) {
+            $imageQuery->useLibraryImageI18nQuery()
+                    ->filterByLocale($locale)
+                    ->filterByTitle("%$title%", Criteria::LIKE)
+                ->endUse();
         }
 
         $itemImageQuery = null;
