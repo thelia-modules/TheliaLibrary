@@ -10,6 +10,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use Thelia\Core\HttpFoundation\Request;
 use TheliaLibrary\Model\LibraryImage;
 use TheliaLibrary\Model\LibraryImageQuery;
+use TheliaLibrary\Model\LibraryItemImageQuery;
 
 /**
  * @Route("/open_api/library/image", name="front_library_image")
@@ -28,6 +29,35 @@ class ImageController extends BaseFrontOpenApiController
      *          in="query",
      *          @OA\Schema(
      *              type="integer"
+     *          )
+     *     ),
+     *     @OA\Parameter(
+     *          name="itemId",
+     *          in="query",
+     *          @OA\Schema(
+     *              type="integer"
+     *          )
+     *     ),
+     *     @OA\Parameter(
+     *          name="itemType",
+     *          in="query",
+     *          @OA\Schema(
+     *              type="string"
+     *          )
+     *     ),
+     *     @OA\Parameter(
+     *          name="code",
+     *          in="query",
+     *          @OA\Schema(
+     *              type="string"
+     *          )
+     *     ),
+     *     @OA\Parameter(
+     *          name="onlyVisible",
+     *          in="query",
+     *          @OA\Schema(
+     *              type="boolean",
+     *              default="true"
      *          )
      *     ),
      *     @OA\Parameter(
@@ -89,6 +119,29 @@ class ImageController extends BaseFrontOpenApiController
             $imageQuery->filterById($id);
         }
 
+        $itemImageQuery = null;
+
+        if (null !== $itemId = $request->get('itemId')) {
+            $itemImageQuery = $this->getOrInitItemJoin($imageQuery, $itemImageQuery)->filterByItemId($itemId);
+        }
+
+        if (null !== $itemType = $request->get('itemType')) {
+            $itemImageQuery = $this->getOrInitItemJoin($imageQuery, $itemImageQuery)->filterByItemType($itemType);
+        }
+
+        if (null !== $code = $request->get('code')) {
+            $itemImageQuery = $this->getOrInitItemJoin($imageQuery, $itemImageQuery)->filterByCode($code);
+        }
+
+        if (true === $request->get('onlyVisible')) {
+            $itemImageQuery = $this->getOrInitItemJoin($imageQuery, $itemImageQuery)->filterByVisible(true);
+        }
+
+        if (null !== $itemImageQuery) {
+            $itemImageQuery->orderByPosition();
+            $itemImageQuery->endUse();
+        }
+
         if (null !== $limit = $request->get('limit', 20)) {
             $imageQuery->limit($limit);
         }
@@ -110,6 +163,15 @@ class ImageController extends BaseFrontOpenApiController
             },
             iterator_to_array($imageQuery->find())
         ));
+    }
+
+    protected function getOrInitItemJoin($query, $itemImageQuery = null): LibraryItemImageQuery
+    {
+        if (null !== $itemImageQuery) {
+            return $itemImageQuery;
+        }
+
+        return $query->useLibraryItemImageQuery();
     }
 
     protected function findLocale(Request $request)

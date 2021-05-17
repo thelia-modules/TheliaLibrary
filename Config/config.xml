@@ -22,11 +22,10 @@
         -->
     </commands>
 
-    <!--
     <services>
-
+      <!-- needed to be used in loop...   -->
+      <service id="thelia_library_image" alias="TheliaLibrary\Service\LibraryImageService" public="true"/>
     </services>
-    -->
 
     <!--
     <hooks>
