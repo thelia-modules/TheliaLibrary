@@ -1,0 +1,27 @@
+.TheliaLibrary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+  gap: 1rem;
+  margin: 1rem;
+  background: #fff;
+  padding: 1rem;
+}
+
+.TheliaLibrary-Thumbnail {
+  border: 1px solid #1e1e1e;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.TheliaLibrary-Thumbnail-title {
+  margin: 1rem 0;
+}
+
+.TheliaLibrary-Thumbnail button {
+  margin-top: auto;
+}
+.TheliaLibrary-Thumbnail img {
+  max-width: 100%;
+  height: auto;
+}

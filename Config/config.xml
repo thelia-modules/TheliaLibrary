@@ -27,13 +27,11 @@
       <service id="thelia_library_image" alias="TheliaLibrary\Service\LibraryImageService" public="true"/>
     </services>
 
-    <!--
     <hooks>
-        <hook id="thelialibrary.hook" class="TheliaLibrary\Hook\MySuperHook">
-            <tag name="hook.event_listener" event="main.body.bottom" type="front|back|pdf|email" method="onMainBodyBottom" />
+        <hook id="thelialibrary.hook.main.interface" class="TheliaLibrary\Hook\TheliaLibraryMenuHook" scope="request">
+            <tag name="hook.event_listener" event="main.in-top-menu-items" type="back" method="onMainInTopMenuItems"/>
         </hook>
     </hooks>
-    -->
 
     <!--
     <exports>
