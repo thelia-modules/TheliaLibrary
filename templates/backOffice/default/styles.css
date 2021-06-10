@@ -15,12 +15,10 @@
 }
 
 .TheliaLibrary-Thumbnail-title {
-  margin: 1rem 0;
+  margin: auto 0 auto;
+  padding: 1rem 0;
 }
 
-.TheliaLibrary-Thumbnail button {
-  margin-top: auto;
-}
 .TheliaLibrary-Thumbnail img {
   max-width: 100%;
   height: auto;

@@ -24,17 +24,23 @@ export function deleteImage(id) {
 }
 export function getImage(id) {}
 
-export function updateImage(id, data) {}
+export function updateImage(id, data) {
+  return axios.post(API_URL + "/" + id, data, {
+    headers: {
+      "content-type": "multipart/form-data",
+    },
+  });
+}
 
 // hooks
-function useAllImages(page = 1, limit) {
+function useAllImages(offset = 1, limit) {
   const [data, setData] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
 
   const fetch = () => {
     setLoading(true);
-    getAllImages({ locale: CURRENT_LOCAL, page, limit })
+    getAllImages({ locale: CURRENT_LOCAL, offset, limit })
       .then((response) => {
         setData(response.data);
       })
@@ -45,8 +51,8 @@ function useAllImages(page = 1, limit) {
   };
 
   React.useEffect(() => {
-    fetch(page, limit);
-  }, [page, limit]);
+    fetch(offset, limit);
+  }, [offset, limit]);
 
   return {
     fetch,
@@ -86,6 +92,17 @@ function Thumbnail({ id, url, title, onDelete }) {
     h(
       "button",
       {
+        className: "btn btn-info btn-responsive",
+        onClick: () => {},
+      },
+      [
+        h("i", { className: "glyphicon glyphicon-edit" }),
+        ("span", null, "modifier"),
+      ]
+    ),
+    h(
+      "button",
+      {
         className: "btn btn-danger btn-responsive",
         onClick: () => {
           if (window.confirm("etes vous sur ?")) {
@@ -109,7 +126,6 @@ function AddImage({ onAdd }) {
 
   React.useEffect(() => {
     if (isSuccess) {
-      console.log(fileInputRef);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -183,6 +199,7 @@ function AddImage({ onAdd }) {
             "button",
             {
               type: "submit",
+              disabled: isPending,
               class: "form-submit-button btn btn-sm btn-success",
             },
             "Ajouter l'image"
@@ -196,9 +213,9 @@ function AddImage({ onAdd }) {
 }
 
 function App() {
-  const [page, setPage] = React.useState(1);
-  const [limit, setLimit] = React.useState(5);
-  const { data, loading, error, fetch } = useAllImages(page, limit);
+  const [offset, setOffset] = React.useState(0);
+  const [limit, setLimit] = React.useState(10);
+  const { data, loading, error, fetch } = useAllImages(offset, limit);
 
   return [
     h(AddImage, { onAdd: () => fetch() }),
@@ -209,9 +226,9 @@ function App() {
       h(
         "button",
         {
-          disabled: page <= 1,
+          disabled: limit > offset,
           onClick: () => {
-            setPage(page - 1);
+            setOffset(offset - limit);
           },
         },
         "Precédent"
@@ -221,7 +238,7 @@ function App() {
         {
           disabled: data?.length < limit,
           onClick: () => {
-            setPage(page + 1);
+            setOffset(offset + limit);
           },
         },
         "Suivant"
