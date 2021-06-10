@@ -79,8 +79,22 @@ function Grid({ data, loading, error, fetch }) {
   );
 }
 
-function Thumbnail({ id, url, title, onDelete }) {
+function Thumbnail({ id, url, title, onDelete = () => {}, onEdit = () => {} }) {
+  const [isEditing, setIsEditing] = React.useState(false);
+
   if (!url) return null;
+
+  console.log(isEditing);
+
+  if (isEditing) {
+    return h(EditImage, {
+      id,
+      onEdit: () => {
+        onEdit();
+        setIsEditing(false);
+      },
+    });
+  }
 
   return h("div", { className: "TheliaLibrary-Thumbnail" }, [
     h("img", { src: url }),
@@ -93,7 +107,9 @@ function Thumbnail({ id, url, title, onDelete }) {
       "button",
       {
         className: "btn btn-info btn-responsive",
-        onClick: () => {},
+        onClick: () => {
+          setIsEditing(true);
+        },
       },
       [
         h("i", { className: "glyphicon glyphicon-edit" }),
@@ -118,7 +134,7 @@ function Thumbnail({ id, url, title, onDelete }) {
   ]);
 }
 
-function AddImage({ onAdd }) {
+function AddImage({ onAdd = () => {} }) {
   const fileInputRef = React.useRef(null);
   const [isSuccess, setIsSuccess] = React.useState(false);
   const [error, setError] = React.useState(false);
@@ -173,6 +189,99 @@ function AddImage({ onAdd }) {
         "div",
         {
           class: "input-group",
+        },
+        h("input", {
+          type: "file",
+          id: "image",
+          required: "required",
+          name: "image",
+          class: "form-control",
+          ref: fileInputRef,
+        }),
+        h("input", {
+          type: "type",
+          id: "title",
+          required: "required",
+          name: "title",
+          placeholder: "Titre de l'image",
+          class: "form-control",
+        }),
+        h(
+          "span",
+          {
+            class: "input-group-btn",
+          },
+          h(
+            "button",
+            {
+              type: "submit",
+              disabled: isPending,
+              class: "form-submit-button btn btn-sm btn-success",
+            },
+            "Ajouter l'image"
+          )
+        )
+      )
+    ),
+    isSuccess ? h("div", null, "Ajout avec succès") : null,
+    error ? h("div", null, error) : null
+  );
+}
+function EditImage({ id, onEdit = () => {} }) {
+  const fileInputRef = React.useRef(null);
+  const [isSuccess, setIsSuccess] = React.useState(false);
+  const [error, setError] = React.useState(false);
+  const [isPending, setIsPending] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isSuccess) {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  }, [isSuccess, fileInputRef]);
+
+  return h(
+    "form",
+    {
+      className: "",
+      onSubmit: (e) => {
+        e.preventDefault();
+        setIsPending(true);
+        setIsSuccess(false);
+        setError(false);
+        const data = new FormData(e.currentTarget);
+        if (!data.has("locale")) {
+          data.set("locale", CURRENT_LOCAL);
+        }
+        updateImage(id, data)
+          .then((response) => {
+            setIsSuccess(true);
+            onEdit(response);
+          })
+          .catch((e) => setError(e.message))
+          .finally(() => {
+            setIsPending(false);
+          });
+      },
+    },
+    h(
+      "div",
+      {
+        class: "form-group ",
+      },
+      h(
+        "label",
+        {
+          for: "file",
+          class: "control-label",
+        },
+        "Ajouter une image"
+      ),
+      h(
+        "div",
+        {
+          class: "",
         },
         h("input", {
           type: "file",
