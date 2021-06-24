@@ -11,7 +11,7 @@
 {block name="check-access"}view{/block}
 
 {block name="after-admin-css"}
-<link rel="stylesheet" href="{stylesheet file='styles.css' template="default" source="TheliaLibrary"}">
+<link rel="stylesheet" href="{stylesheet file='dist/library.css' template="default" source="TheliaLibrary"}">
 {/block}
 
 {block name="main-content"}
@@ -22,10 +22,9 @@
 <script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-
-    <script type="module">
-        import * as TheliaLibrary from "{javascript file='library.js' template="default" source="TheliaLibrary"}";
-        TheliaLibrary.displayMainInterface(document.getElementById('library'));
-    </script>
+<script src="{javascript file='dist/library.umd.js' template="default" source="TheliaLibrary"}"></script>
+<script type="module">
+    ReactDOM.render(React.createElement(TheliaLibrary.App), document.getElementById('library'))
+</script>
 
 {/block}

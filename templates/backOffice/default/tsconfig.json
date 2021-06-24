@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+      "target": "ES2020",
+      "allowJs": false,
+      "module": "es2020",
+      "jsx": "react",
+      "strict": true,
+      "moduleResolution": "node",
+      "esModuleInterop": true,
+      "skipLibCheck": true,
+      "forceConsistentCasingInFileNames": true,
+      "declaration": true,
+      "emitDeclarationOnly": true,
+      "outDir": "./dist",
+    },
+    "include": ["./src"],
+
+  }

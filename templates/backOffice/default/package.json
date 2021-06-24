@@ -1,0 +1,27 @@
+{
+  "name": "default",
+  "version": "1.0.0",
+  "description": "",
+  "module": "./dist/library.es.js",
+  "main": "./dist/library.umd.js",
+  "types": "./dist/main.d.ts",
+  "scripts": {
+    "dev": "rollup --watch --config",
+    "build": "./node_modules/.bin/tsc --outFile ./dist/main.d.ts && rollup --config && rm -rf rm -rf ../../../../../../web/assets/backOffice/default/TheliaLibrary"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^8.2.1",
+    "@types/react": "^17.0.11",
+    "@types/react-dom": "^17.0.7",
+    "axios": "^0.21.1",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "rollup": "^2.52.1",
+    "rollup-plugin-import-css": "^2.0.1",
+    "tslib": "^2.3.0",
+    "typescript": "^4.3.3"
+  }
+}
