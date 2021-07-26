@@ -42,6 +42,32 @@ class LibraryImage extends BaseI18nLoop implements PropelSearchLoopInterface
     {
         $query = LibraryImageQuery::create();
 
+
+        if (null !== $id = $this->getId()) {
+            $query->filterById($id);
+        }
+
+        if (null !== $itemId = $this->getItemId()) {
+            $query = $this->getOrInitItemJoin($query)->filterByItemId($itemId);
+        }
+
+        if (null !== $itemType = $this->getItemType()) {
+            $query = $this->getOrInitItemJoin($query)->filterByItemType($itemType);
+        }
+
+        if (null !== $code = $this->getCode()) {
+            $query = $this->getOrInitItemJoin($query)->filterByCode($code);
+        }
+
+        if (true === $this->getOnlyVisible()) {
+            $query = $this->getOrInitItemJoin($query)->filterByVisible(true);
+        }
+
+        if ($query instanceof LibraryItemImageQuery) {
+            $query->orderByPosition();
+            $query = $query->endUse();
+        }
+
         $this->configureI18nProcessing(
             $query,
             [
@@ -49,31 +75,6 @@ class LibraryImage extends BaseI18nLoop implements PropelSearchLoopInterface
                 'FILE_NAME',
             ]
         );
-
-        if (null !== $id = $this->getId()) {
-            $query->filterById($id);
-        }
-
-        if (null !== $itemId = $this->getItemId()) {
-            $this->getOrInitItemJoin($query)->filterByItemId($itemId);
-        }
-
-        if (null !== $itemType = $this->getItemType()) {
-            $this->getOrInitItemJoin($query)->filterByItemType($itemType);
-        }
-
-        if (null !== $code = $this->getCode()) {
-            $this->getOrInitItemJoin($query)->filterByCode($code);
-        }
-
-        if (true === $this->getOnlyVisible()) {
-            $this->getOrInitItemJoin($query)->filterByVisible(true);
-        }
-
-        if ($query instanceof LibraryItemImageQuery) {
-            $query->orderByPosition();
-            $query->endUse();
-        }
 
         return $query;
     }

@@ -2,6 +2,7 @@
 
 namespace TheliaLibrary\Service;
 
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Thelia\Core\HttpFoundation\Session\Session;
@@ -11,6 +12,11 @@ use TheliaLibrary\Model\LibraryItemImageQuery;
 
 class LibraryItemImageService
 {
+    /**
+     * @var LibraryImageService
+     */
+    protected $libraryImageService;
+
     /** @var EventDispatcherInterface */
     protected $eventDispatcher;
 
@@ -18,12 +24,37 @@ class LibraryItemImageService
     protected $session;
 
     public function __construct(
+        LibraryImageService $libraryImageService,
         EventDispatcherInterface $eventDispatcher,
         RequestStack $requestStack
     )
     {
         $this->eventDispatcher = $eventDispatcher;
         $this->session = $requestStack->getCurrentRequest()->getSession();
+        $this->libraryImageService = $libraryImageService;
+    }
+
+    public function createAndAssociateImage(
+        UploadedFile $file,
+        string $imageTitle = null,
+        string $locale = null,
+        $itemType,
+        $itemId,
+        $code = null,
+        $visible = true,
+        $position = null
+    ): LibraryItemImage
+    {
+        $image = $this->libraryImageService->createImage($file, $imageTitle, $locale);
+
+        return $this->associateImage(
+            $image->getId(),
+            $itemType,
+            $itemId,
+            $code,
+            $visible,
+            $position
+        );
     }
 
     public function associateImage(
