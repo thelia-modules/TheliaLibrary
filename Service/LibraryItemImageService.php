@@ -7,6 +7,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Thelia\Core\HttpFoundation\Session\Session;
 use Thelia\Core\Translation\Translator;
+use TheliaLibrary\Model\LibraryImageQuery;
 use TheliaLibrary\Model\LibraryItemImage;
 use TheliaLibrary\Model\LibraryItemImageQuery;
 
@@ -42,9 +43,26 @@ class LibraryItemImageService
         $itemId,
         $code = null,
         $visible = true,
-        $position = null
+        $position = null,
+        $replaceOld = false
     ): LibraryItemImage
     {
+        if ($replaceOld) {
+            $existingImages = LibraryImageQuery::create()
+                    ->useLibraryItemImageQuery()
+                        ->filterByItemType($itemType)
+                        ->filterByItemId($itemId)
+                        ->filterByCode($code)
+                    ->endUse()
+                ->find();
+
+            if (!empty($existingImages)) {
+                foreach ($existingImages as $existingImage) {
+                    $this->libraryImageService->deleteImage($existingImage->getId());
+                }
+            }
+        }
+
         $image = $this->libraryImageService->createImage($file, $imageTitle, $locale);
 
         return $this->associateImage(
