@@ -2,12 +2,15 @@
 
 namespace TheliaLibrary\Loop;
 
+use Thelia\Action\Image;
 use Thelia\Core\Template\Element\BaseI18nLoop;
 use Thelia\Core\Template\Element\LoopResult;
 use Thelia\Core\Template\Element\LoopResultRow;
 use Thelia\Core\Template\Element\PropelSearchLoopInterface;
 use Thelia\Core\Template\Loop\Argument\Argument;
 use Thelia\Core\Template\Loop\Argument\ArgumentCollection;
+use Thelia\Type\EnumType;
+use Thelia\Type\TypeCollection;
 use TheliaLibrary\Model\LibraryImageQuery;
 use TheliaLibrary\Model\LibraryItemImageQuery;
 use TheliaLibrary\Service\LibraryImageService;
@@ -22,6 +25,8 @@ use TheliaLibrary\Service\LibraryImageService;
  * @method boolean getOnlyVisible()
  * @method int getWidth()
  * @method int getHeight()
+ * @method int getAllowZoom()
+ * @method boolean getResizeMode()
  */
 class LibraryImage extends BaseI18nLoop implements PropelSearchLoopInterface
 {
@@ -35,6 +40,18 @@ class LibraryImage extends BaseI18nLoop implements PropelSearchLoopInterface
             Argument::createBooleanTypeArgument('only_visible'),
             Argument::createIntTypeArgument('width'),
             Argument::createIntTypeArgument('height'),
+            new Argument(
+                'resize_mode',
+                new TypeCollection(
+                    new EnumType([
+                        Image::EXACT_RATIO_WITH_BORDERS,
+                        Image::EXACT_RATIO_WITH_CROP,
+                        Image::KEEP_IMAGE_RATIO,
+                    ])
+                ),
+                'none'
+            ),
+            Argument::createBooleanTypeArgument('allow_zoom', false),
         );
     }
 
@@ -88,7 +105,9 @@ class LibraryImage extends BaseI18nLoop implements PropelSearchLoopInterface
             $imageUrl = $libraryImageService->getImageFilePublicUrl(
                 $entry->getVirtualColumn('i18n_FILE_NAME'),
                 $this->getWidth(),
-                $this->getHeight()
+                $this->getHeight(),
+                $this->getResizeMode(),
+                $this->getAllowZoom()
             );
 
             $row = new LoopResultRow($entry);

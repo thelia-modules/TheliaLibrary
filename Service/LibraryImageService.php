@@ -76,13 +76,23 @@ class LibraryImageService
         return true;
     }
 
-    public function getImagePublicUrl(LibraryImage $image,  $width = null, $height = null)
-    {
-        return $this->getImageFilePublicUrl($image->getFileName(), $width, $height);
+    public function getImagePublicUrl(
+        LibraryImage $image,
+        $width = null,
+        $height = null,
+        $resizeMode = Image::EXACT_RATIO_WITH_BORDERS,
+        $allowZoom = false
+    ) {
+        return $this->getImageFilePublicUrl($image->getFileName(), $width, $height, $resizeMode, $allowZoom);
     }
 
-    public function getImageFilePublicUrl($imageName = null, $width = null, $height = null)
-    {
+    public function getImageFilePublicUrl(
+        $imageName = null,
+        $width = null,
+        $height = null,
+        $resizeMode = Image::EXACT_RATIO_WITH_BORDERS,
+        $allowZoom = false
+    ) {
         if (null == $imageName) {
             return null;
         }
@@ -97,7 +107,8 @@ class LibraryImageService
             $imageEvent->setHeight((float) $height);
         }
 
-        $imageEvent->setResizeMode(Image::EXACT_RATIO_WITH_BORDERS);
+        $imageEvent->setResizeMode($resizeMode);
+        $imageEvent->setAllowZoom($allowZoom);
 
         if (!file_exists($filePath)) {
             return null;
