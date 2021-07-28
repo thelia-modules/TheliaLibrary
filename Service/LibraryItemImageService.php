@@ -5,7 +5,6 @@ namespace TheliaLibrary\Service;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
-use Thelia\Core\HttpFoundation\Session\Session;
 use Thelia\Core\Translation\Translator;
 use TheliaLibrary\Model\LibraryImageQuery;
 use TheliaLibrary\Model\LibraryItemImage;
@@ -21,9 +20,6 @@ class LibraryItemImageService
     /** @var EventDispatcherInterface */
     protected $eventDispatcher;
 
-    /** @var Session */
-    protected $session;
-
     public function __construct(
         LibraryImageService $libraryImageService,
         EventDispatcherInterface $eventDispatcher,
@@ -31,7 +27,6 @@ class LibraryItemImageService
     )
     {
         $this->eventDispatcher = $eventDispatcher;
-        $this->session = $requestStack->getCurrentRequest()->getSession();
         $this->libraryImageService = $libraryImageService;
     }
 
