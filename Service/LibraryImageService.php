@@ -9,7 +9,6 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Thelia\Action\Image;
 use Thelia\Core\Event\Image\ImageEvent;
 use Thelia\Core\Event\TheliaEvents;
-use Thelia\Core\HttpFoundation\Session\Session;
 use Thelia\Core\Translation\Translator;
 use TheliaLibrary\Model\LibraryImage;
 use TheliaLibrary\Model\LibraryImageI18nQuery;
@@ -21,8 +20,8 @@ class LibraryImageService
     /** @var EventDispatcherInterface */
     protected $eventDispatcher;
 
-    /** @var Session */
-    protected $session;
+    /** @var RequestStack */
+    protected $requestStack;
 
     public function __construct(
         EventDispatcherInterface $eventDispatcher,
@@ -30,7 +29,7 @@ class LibraryImageService
     )
     {
         $this->eventDispatcher = $eventDispatcher;
-        $this->session = $requestStack->getCurrentRequest()->getSession();
+        $this->requestStack = $requestStack;
     }
 
     public function createImage(
@@ -127,7 +126,7 @@ class LibraryImageService
         }
 
         if (null == $locale) {
-            $locale = $this->session->getAdminEditionLang()->getLocale();
+            $locale = $this->requestStack->getCurrentRequest()->getSession()->getAdminEditionLang()->getLocale();
         }
 
         $image->setLocale($locale);
