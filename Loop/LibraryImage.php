@@ -1,5 +1,15 @@
 <?php
 
+/*
+ * This file is part of the Thelia package.
+ * http://www.thelia.net
+ *
+ * (c) OpenStudio <info@thelia.net>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace TheliaLibrary\Loop;
 
 use Thelia\Action\Image;
@@ -18,15 +28,15 @@ use TheliaLibrary\Service\LibraryImageService;
 /**
  * Class LibraryImage.
  *
- * @method int getId()
- * @method int getItemId()
+ * @method int    getId()
+ * @method int    getItemId()
  * @method string getItemType()
  * @method string getCode()
- * @method boolean getOnlyVisible()
- * @method int getWidth()
- * @method int getHeight()
- * @method int getAllowZoom()
- * @method boolean getResizeMode()
+ * @method bool   getOnlyVisible()
+ * @method int    getWidth()
+ * @method int    getHeight()
+ * @method int    getAllowZoom()
+ * @method bool   getResizeMode()
  */
 class LibraryImage extends BaseI18nLoop implements PropelSearchLoopInterface
 {
@@ -58,7 +68,6 @@ class LibraryImage extends BaseI18nLoop implements PropelSearchLoopInterface
     public function buildModelCriteria()
     {
         $query = LibraryImageQuery::create();
-
 
         if (null !== $id = $this->getId()) {
             $query->filterById($id);

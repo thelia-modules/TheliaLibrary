@@ -1,6 +1,16 @@
 <?php
 
-namespace TheliaLibrary\Controller\Front;
+/*
+ * This file is part of the Thelia package.
+ * http://www.thelia.net
+ *
+ * (c) OpenStudio <info@thelia.net>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace TheliaLibrary\Controller\Front\OpenApi;
 
 use OpenApi\Annotations as OA;
 use OpenApi\Controller\Front\BaseFrontOpenApiController;
@@ -112,7 +122,6 @@ class ItemImageController extends BaseFrontOpenApiController
         ));
     }
 
-
     /**
      * @Route("/types", name="_type_list", methods="GET")
      *
@@ -158,8 +167,7 @@ class ItemImageController extends BaseFrontOpenApiController
             ->find())
         );
 
-        if (false === $request->get('onlyExisting', false) || "false" === $request->get('onlyExisting', false))
-        {
+        if (false === $request->get('onlyExisting', false) || 'false' === $request->get('onlyExisting', false)) {
             $itemTypes = array_merge(
                 [
                     'product',

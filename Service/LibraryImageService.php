@@ -1,5 +1,15 @@
 <?php
 
+/*
+ * This file is part of the Thelia package.
+ * http://www.thelia.net
+ *
+ * (c) OpenStudio <info@thelia.net>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace TheliaLibrary\Service;
 
 use Symfony\Component\Filesystem\Filesystem;
@@ -17,21 +27,24 @@ use TheliaLibrary\TheliaLibrary;
 
 class LibraryImageService
 {
-    /** @var EventDispatcherInterface */
-    protected $eventDispatcher;
+    const LIBRARY_IMAGE_DIR = THELIA_WEB_DIR.'library'.DS.'images'.DS;
+    const LIBRARY_IMAGE_BASE_ROUTE = '/library/images/';
 
-    /** @var RequestStack */
-    protected $requestStack;
+    protected EventDispatcherInterface $eventDispatcher;
+
+    protected RequestStack $requestStack;
 
     public function __construct(
         EventDispatcherInterface $eventDispatcher,
         RequestStack $requestStack
-    )
-    {
+    ) {
         $this->eventDispatcher = $eventDispatcher;
         $this->requestStack = $requestStack;
     }
 
+    /**
+     * @throws \Exception
+     */
     public function createImage(
         UploadedFile $file,
         string $title = null,
@@ -40,6 +53,9 @@ class LibraryImageService
         return $this->createOrUpdateImage($file, $title, $locale);
     }
 
+    /**
+     * @throws \Exception
+     */
     public function updateImage(
         $imageId,
         UploadedFile $file = null,

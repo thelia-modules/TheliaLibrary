@@ -1,5 +1,15 @@
 <?php
 
+/*
+ * This file is part of the Thelia package.
+ * http://www.thelia.net
+ *
+ * (c) OpenStudio <info@thelia.net>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace TheliaLibrary\Controller\Admin;
 
 use OpenApi\Annotations as OA;
@@ -60,8 +70,7 @@ class ImageController extends BaseAdminOpenApiController
         Request $request,
         ModelFactory $modelFactory,
         LibraryImageService $libraryImageService
-    )
-    {
+    ) {
         $locale = $this->findLocale($request);
 
         $image = $libraryImageService->createImage(
@@ -74,8 +83,8 @@ class ImageController extends BaseAdminOpenApiController
     }
 
     // Method POST because patch doesn't work with multipart/form-data
+
     /**
-     *
      * @Route("/{imageId}", name="_update", methods="POST", requirements={"imageId"="\d+"})
      *
      * @OA\Post(
@@ -128,8 +137,7 @@ class ImageController extends BaseAdminOpenApiController
         Request $request,
         ModelFactory $modelFactory,
         LibraryImageService $libraryImageService
-    )
-    {
+    ) {
         $locale = $this->findLocale($request);
         $image = $libraryImageService->updateImage(
             $imageId,
@@ -173,7 +181,7 @@ class ImageController extends BaseAdminOpenApiController
     ) {
         $libraryImageService->deleteImage($imageId);
 
-        return new JsonResponse("Success", 204);
+        return new JsonResponse('Success', 204);
     }
 
     protected function findLocale(Request $request)

@@ -1,15 +1,24 @@
 <?php
 
+/*
+ * This file is part of the Thelia package.
+ * http://www.thelia.net
+ *
+ * (c) OpenStudio <info@thelia.net>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace TheliaLibrary\Model\Api;
 
 use OpenApi\Annotations as OA;
-use OpenApi\Model\Api\BaseApiModel;
 use OpenApi\Constraint as Constraint;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
+use OpenApi\Model\Api\BaseApiModel;
 
 /**
- * Class LibraryItemImage
- * @package OpenApi\Model\Api
+ * Class LibraryItemImage.
+ *
  * @OA\Schema(
  *     schema="LibraryItemImage",
  *     title="LibraryItemImage",
@@ -18,7 +27,7 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 class LibraryItemImage extends BaseApiModel
 {
     /**
-     * @var integer
+     * @var int
      * @OA\Property(
      *    type="integer",
      * )
@@ -27,7 +36,7 @@ class LibraryItemImage extends BaseApiModel
     protected $id;
 
     /**
-     * @var integer
+     * @var int
      * @OA\Property(
      *     type="integer",
      * )
@@ -52,7 +61,7 @@ class LibraryItemImage extends BaseApiModel
     protected $itemType;
 
     /**
-     * @var integer
+     * @var int
      * @OA\Property(
      *     type="integer",
      * )
@@ -68,7 +77,7 @@ class LibraryItemImage extends BaseApiModel
     protected $code;
 
     /**
-     * @var boolean
+     * @var bool
      * @OA\Property(
      *     type="boolean",
      * )
@@ -76,7 +85,7 @@ class LibraryItemImage extends BaseApiModel
     protected $visible = true;
 
     /**
-     * @var integer
+     * @var int
      * @OA\Property(
      *     type="integer",
      * )
@@ -92,18 +101,15 @@ class LibraryItemImage extends BaseApiModel
     }
 
     /**
-     * @param int $id
      * @return LibraryImage
      */
-    public function setId(int $id): LibraryItemImage
+    public function setId(int $id): self
     {
         $this->id = $id;
+
         return $this;
     }
 
-    /**
-     * @return int
-     */
     public function getImageId(): int
     {
         return $this->imageId;
@@ -117,59 +123,41 @@ class LibraryItemImage extends BaseApiModel
         return $this->image;
     }
 
-    /**
-     * @param LibraryImage $image
-     * @return LibraryItemImage
-     */
-    public function setLibraryImage(LibraryImage $image): LibraryItemImage
+    public function setLibraryImage(LibraryImage $image): self
     {
         $this->image = $image;
+
         return $this;
     }
 
-    /**
-     * @param int $imageId
-     * @return LibraryItemImage
-     */
-    public function setImageId(int $imageId): LibraryItemImage
+    public function setImageId(int $imageId): self
     {
         $this->imageId = $imageId;
+
         return $this;
     }
 
-    /**
-     * @return string
-     */
     public function getItemType(): string
     {
         return $this->itemType;
     }
 
-    /**
-     * @param string $itemType
-     * @return LibraryItemImage
-     */
-    public function setItemType(string $itemType): LibraryItemImage
+    public function setItemType(string $itemType): self
     {
         $this->itemType = $itemType;
+
         return $this;
     }
 
-    /**
-     * @return int
-     */
     public function getItemId(): int
     {
         return $this->itemId;
     }
 
-    /**
-     * @param int $itemId
-     * @return LibraryItemImage
-     */
-    public function setItemId(int $itemId): LibraryItemImage
+    public function setItemId(int $itemId): self
     {
         $this->itemId = $itemId;
+
         return $this;
     }
 
@@ -181,31 +169,22 @@ class LibraryItemImage extends BaseApiModel
         return $this->code;
     }
 
-    /**
-     * @param string|null $code
-     * @return LibraryItemImage
-     */
-    public function setCode(?string $code): LibraryItemImage
+    public function setCode(?string $code): self
     {
         $this->code = $code;
+
         return $this;
     }
 
-    /**
-     * @return bool
-     */
     public function isVisible(): bool
     {
         return $this->visible;
     }
 
-    /**
-     * @param bool $visible
-     * @return LibraryItemImage
-     */
-    public function setVisible(bool $visible = true): LibraryItemImage
+    public function setVisible(bool $visible = true): self
     {
         $this->visible = $visible;
+
         return $this;
     }
 
@@ -219,11 +198,11 @@ class LibraryItemImage extends BaseApiModel
 
     /**
      * @param int $position
-     * @return LibraryItemImage
      */
-    public function setPosition(?int $position): LibraryItemImage
+    public function setPosition(?int $position): self
     {
         $this->position = $position;
+
         return $this;
     }
 

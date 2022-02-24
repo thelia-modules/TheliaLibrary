@@ -1,10 +1,20 @@
 <?php
 
+/*
+ * This file is part of the Thelia package.
+ * http://www.thelia.net
+ *
+ * (c) OpenStudio <info@thelia.net>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace TheliaLibrary\Model\Api;
 
 use OpenApi\Annotations as OA;
-use OpenApi\Model\Api\BaseApiModel;
 use OpenApi\Constraint as Constraint;
+use OpenApi\Model\Api\BaseApiModel;
 use OpenApi\Model\Api\ModelFactory;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
@@ -12,8 +22,8 @@ use Thelia\TaxEngine\TaxEngine;
 use TheliaLibrary\Service\LibraryImageService;
 
 /**
- * Class LibraryImage
- * @package OpenApi\Model\Api
+ * Class LibraryImage.
+ *
  * @OA\Schema(
  *     schema="LibraryImage",
  *     title="LibraryImage",
@@ -22,7 +32,7 @@ use TheliaLibrary\Service\LibraryImageService;
 class LibraryImage extends BaseApiModel
 {
     /**
-     * @var integer
+     * @var int
      * @OA\Property(
      *    type="integer",
      * )
@@ -45,7 +55,6 @@ class LibraryImage extends BaseApiModel
      * )
      */
     protected $fileName;
-
 
     /**
      * @var string
@@ -78,7 +87,7 @@ class LibraryImage extends BaseApiModel
         $this->generateUrl();
     }
 
-    public function generateUrl($width = null, $height = null)
+    public function generateUrl($width = null, $height = null): void
     {
         $this->url = $this->libraryImageService->getImageFilePublicUrl($this->getFileName(), $width, $height);
     }
@@ -91,13 +100,10 @@ class LibraryImage extends BaseApiModel
         return $this->id;
     }
 
-    /**
-     * @param int $id
-     * @return LibraryImage
-     */
-    public function setId(int $id): LibraryImage
+    public function setId(int $id): self
     {
         $this->id = $id;
+
         return $this;
     }
 
@@ -111,11 +117,11 @@ class LibraryImage extends BaseApiModel
 
     /**
      * @param string $title
-     * @return LibraryImage
      */
-    public function setTitle(?string $title): LibraryImage
+    public function setTitle(?string $title): self
     {
         $this->title = $title;
+
         return $this;
     }
 
@@ -127,13 +133,10 @@ class LibraryImage extends BaseApiModel
         return $this->fileName;
     }
 
-    /**
-     * @param string|null $fileName
-     * @return LibraryImage
-     */
-    public function setFileName(?string $fileName = null): LibraryImage
+    public function setFileName(?string $fileName = null): self
     {
         $this->fileName = $fileName;
+
         return $this;
     }
 
@@ -147,11 +150,11 @@ class LibraryImage extends BaseApiModel
 
     /**
      * @param string $url
-     * @return LibraryImage
      */
-    public function setUrl(?string $url): LibraryImage
+    public function setUrl(?string $url): self
     {
         $this->url = $url;
+
         return $this;
     }
 

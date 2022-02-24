@@ -1,9 +1,18 @@
 <?php
 
+/*
+ * This file is part of the Thelia package.
+ * http://www.thelia.net
+ *
+ * (c) OpenStudio <info@thelia.net>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace TheliaLibrary\Service;
 
 use Symfony\Component\HttpFoundation\File\UploadedFile;
-use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Thelia\Core\Translation\Translator;
 use TheliaLibrary\Model\LibraryImageQuery;
@@ -12,20 +21,14 @@ use TheliaLibrary\Model\LibraryItemImageQuery;
 
 class LibraryItemImageService
 {
-    /**
-     * @var LibraryImageService
-     */
-    protected $libraryImageService;
+    protected LibraryImageService $libraryImageService;
 
-    /** @var EventDispatcherInterface */
-    protected $eventDispatcher;
+    protected EventDispatcherInterface $eventDispatcher;
 
     public function __construct(
         LibraryImageService $libraryImageService,
-        EventDispatcherInterface $eventDispatcher,
-        RequestStack $requestStack
-    )
-    {
+        EventDispatcherInterface $eventDispatcher
+    ) {
         $this->eventDispatcher = $eventDispatcher;
         $this->libraryImageService = $libraryImageService;
     }
@@ -40,8 +43,7 @@ class LibraryItemImageService
         $visible = true,
         $position = null,
         $replaceOld = false
-    ): LibraryItemImage
-    {
+    ): LibraryItemImage {
         if ($replaceOld) {
             $existingImages = LibraryImageQuery::create()
                     ->useLibraryItemImageQuery()
@@ -77,8 +79,7 @@ class LibraryItemImageService
         $code = null,
         $visible = true,
         $position = null
-    ): LibraryItemImage
-    {
+    ): LibraryItemImage {
         $itemImage = (new LibraryItemImage())
             ->setImageId($imageId)
             ->setItemType($itemType)
@@ -101,8 +102,7 @@ class LibraryItemImageService
         $visible = true,
         $position = null,
         $positionMovement = null
-    ): LibraryItemImage
-    {
+    ): LibraryItemImage {
         $itemImage = LibraryItemImageQuery::create()
             ->filterById($itemImageId)
             ->findOne();
@@ -119,11 +119,11 @@ class LibraryItemImageService
             $itemImage->changeAbsolutePosition($position);
         }
 
-        if ("up" === strtolower($positionMovement)) {
+        if ('up' === strtolower($positionMovement)) {
             $itemImage->movePositionUp();
         }
 
-        if ("down" === strtolower($positionMovement)) {
+        if ('down' === strtolower($positionMovement)) {
             $itemImage->movePositionDown();
         }
 
