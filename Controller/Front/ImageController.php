@@ -17,6 +17,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use Thelia\Controller\Front\BaseFrontController;
 use Thelia\Core\HttpFoundation\Response;
 use Thelia\Tools\URL;
+use TheliaLibrary\Service\ImageService;
 use TheliaLibrary\Service\ImageTransformationService;
 
 /**
@@ -34,9 +35,9 @@ class ImageController extends BaseFrontController
         $rotation,
         $quality,
         $format,
-        ImageTransformationService $imageTransformationService
+        ImageService $imageService
     ) {
-        $imagePath = $imageTransformationService->geFormattedImage($identifier, $region, $size, $rotation, $quality, $format);
+        $imagePath = $imageService->geFormattedImage($identifier, $region, $size, $rotation, $quality, $format);
 
         return new BinaryFileResponse($imagePath);
     }
@@ -46,11 +47,11 @@ class ImageController extends BaseFrontController
      */
     public function getImageInformation(
         $identifier,
-        ImageTransformationService $imageTransformationService
+        ImageService $imageService
     ): Response {
-        $image = $imageTransformationService->openImage($identifier);
+        $image = $imageService->openImage($identifier);
         $size = $image->getSize();
-        $maxSize = $imageTransformationService->getMaxSize($image);
+        $maxSize = $imageService->getMaxSize($image);
 
         return new Response(
             json_encode(

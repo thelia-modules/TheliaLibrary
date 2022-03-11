@@ -13,12 +13,9 @@
 namespace TheliaLibrary\Service;
 
 use Symfony\Component\Filesystem\Filesystem;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
-use Thelia\Action\Image;
-use Thelia\Core\Event\Image\ImageEvent;
-use Thelia\Core\Event\TheliaEvents;
 use Thelia\Core\Translation\Translator;
 use TheliaLibrary\Model\LibraryImage;
 use TheliaLibrary\Model\LibraryImageI18nQuery;
@@ -34,19 +31,23 @@ class LibraryImageService
 
     protected RequestStack $requestStack;
 
+    protected ImageService $imageService;
+
     public function __construct(
         EventDispatcherInterface $eventDispatcher,
-        RequestStack $requestStack
+        RequestStack $requestStack,
+        ImageService $imageService
     ) {
         $this->eventDispatcher = $eventDispatcher;
         $this->requestStack = $requestStack;
+        $this->imageService = $imageService;
     }
 
     /**
      * @throws \Exception
      */
     public function createImage(
-        UploadedFile $file,
+        File $file,
         string $title = null,
         string $locale = null
     ): LibraryImage {
@@ -58,7 +59,7 @@ class LibraryImageService
      */
     public function updateImage(
         $imageId,
-        UploadedFile $file = null,
+        File $file = null,
         string $title = null,
         string $locale = null
     ): LibraryImage {
@@ -93,53 +94,25 @@ class LibraryImageService
     }
 
     public function getImagePublicUrl(
-        LibraryImage $image,
+        LibraryImage $image = null,
         $width = null,
-        $height = null,
-        $resizeMode = Image::EXACT_RATIO_WITH_BORDERS,
-        $allowZoom = false
+        $height = null
     ) {
-        return $this->getImageFilePublicUrl($image->getFileName(), $width, $height, $resizeMode, $allowZoom);
-    }
-
-    public function getImageFilePublicUrl(
-        $imageName = null,
-        $width = null,
-        $height = null,
-        $resizeMode = Image::EXACT_RATIO_WITH_BORDERS,
-        $allowZoom = false
-    ) {
-        if (null == $imageName) {
+        if (null == $image) {
             return null;
         }
 
-        $imageEvent = new ImageEvent();
-        $filePath = TheliaLibrary::getImageDirectory().$imageName;
-
-        if (null !== $width) {
-            $imageEvent->setWidth((float) $width);
-        }
-        if (null !== $height) {
-            $imageEvent->setHeight((float) $height);
+        $format = pathinfo($image->getFileName(), PATHINFO_EXTENSION);
+        $size = "max";
+        if ($width || $height) {
+            $size = $width.','.$height;
         }
 
-        $imageEvent->setResizeMode($resizeMode);
-        $imageEvent->setAllowZoom($allowZoom);
-
-        if (!file_exists($filePath)) {
-            return null;
-        }
-
-        $imageEvent->setSourceFilepath($filePath);
-        $imageEvent->setCacheSubdirectory('library');
-
-        $this->eventDispatcher->dispatch($imageEvent, TheliaEvents::IMAGE_PROCESS);
-
-        return $imageEvent->getFileUrl();
+        return $this->imageService->getUrlForImage($image->getId(), $format, 'full', $size);
     }
 
     protected function createOrUpdateImage(
-        UploadedFile $file = null,
+        File $file = null,
         string $title = null,
         string $locale = null,
         int $imageId = null
@@ -157,9 +130,10 @@ class LibraryImageService
         }
 
         $image->setLocale($locale);
+        $fileName = method_exists($file, "getClientOriginalName") ? $file->getClientOriginalName(): $file->getFilename();
 
         if (null === $title && null === $image->getTitle()) {
-            $title = $file->getClientOriginalName();
+            $title = $fileName;
         }
 
         if (null != $title) {
@@ -172,7 +146,7 @@ class LibraryImageService
                 $fileSystem = new Filesystem();
                 $fileSystem->remove(TheliaLibrary::getImageDirectory().$image->getFileName());
             }
-            $imageName = bin2hex(random_bytes(5)).'_'.$file->getClientOriginalName();
+            $imageName = bin2hex(random_bytes(5)).'_'.$fileName;
             $file->move(TheliaLibrary::getImageDirectory(), $imageName);
             $image->setFileName($imageName);
         }

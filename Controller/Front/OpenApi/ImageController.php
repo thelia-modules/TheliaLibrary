@@ -182,7 +182,8 @@ class ImageController extends BaseFrontOpenApiController
             function (LibraryImage $image) use ($modelFactory, $locale, $width, $height) {
                 /** @var \TheliaLibrary\Model\Api\LibraryImage $imageModel */
                 $imageModel = $modelFactory->buildModel('LibraryImage', $image, $locale);
-                $imageModel->generateUrl($width, $height);
+                $imageModel->setWidth($width);
+                $imageModel->setHeight($height);
 
                 return $imageModel;
             },

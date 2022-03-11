@@ -24,6 +24,7 @@ use Thelia\Type\TypeCollection;
 use TheliaLibrary\Model\LibraryImageQuery;
 use TheliaLibrary\Model\LibraryItemImageQuery;
 use TheliaLibrary\Service\LibraryImageService;
+use TheliaLibrary\Model\LibraryImage as LibraryImageModel;
 
 /**
  * Class LibraryImage.
@@ -35,8 +36,6 @@ use TheliaLibrary\Service\LibraryImageService;
  * @method bool   getOnlyVisible()
  * @method int    getWidth()
  * @method int    getHeight()
- * @method int    getAllowZoom()
- * @method bool   getResizeMode()
  */
 class LibraryImage extends BaseI18nLoop implements PropelSearchLoopInterface
 {
@@ -107,27 +106,25 @@ class LibraryImage extends BaseI18nLoop implements PropelSearchLoopInterface
 
     public function parseResults(LoopResult $loopResult)
     {
-        /** @var LibraryImage $entry */
-        foreach ($loopResult->getResultDataCollection() as $entry) {
+        /** @var LibraryImageModel $image */
+        foreach ($loopResult->getResultDataCollection() as $image) {
             /** @var LibraryImageService $libraryImageService */
             $libraryImageService = $this->container->get('thelia_library_image');
-            $imageUrl = $libraryImageService->getImageFilePublicUrl(
-                $entry->getVirtualColumn('i18n_FILE_NAME'),
+            $imageUrl = $libraryImageService->getImagePublicUrl(
+                $image,
                 $this->getWidth(),
-                $this->getHeight(),
-                $this->getResizeMode(),
-                $this->getAllowZoom()
+                $this->getHeight()
             );
 
-            $row = new LoopResultRow($entry);
+            $row = new LoopResultRow($image);
             $row
-                ->set('ID', $entry->getId())
-                ->set('TITLE', $entry->getVirtualColumn('i18n_TITLE'))
-                ->set('FILE_NAME', $entry->getVirtualColumn('i18n_FILE_NAME'))
+                ->set('ID', $image->getId())
+                ->set('TITLE', $image->getVirtualColumn('i18n_TITLE'))
+                ->set('FILE_NAME', $image->getVirtualColumn('i18n_FILE_NAME'))
                 ->set('URL', $imageUrl)
             ;
 
-            $this->addOutputFields($row, $entry);
+            $this->addOutputFields($row, $image);
 
             $loopResult->addRow($row);
         }

@@ -25,7 +25,7 @@ class TheliaLibrary extends BaseModule
 
     const DEFAULT_IMAGE_DIRECTORY = THELIA_LOCAL_DIR.'library/images/';
 
-    public function preActivation(ConnectionInterface $con = null)
+    public function preActivation(ConnectionInterface $con = null): bool
     {
         if (!$this->getConfigValue('is_initialized', false)) {
             $database = new Database($con);

@@ -21,12 +21,25 @@ use Imagine\Image\Point;
 use Imagine\Imagick\Imagine as ImagickImagine;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Thelia\Model\ConfigQuery;
+use Thelia\Tools\URL;
 use TheliaLibrary\Model\LibraryImageQuery;
 use TheliaLibrary\TheliaLibrary;
 
-class ImageTransformationService
+class ImageService
 {
     const MAX_ALLOWED_SIZE_FACTOR = 2;
+
+    public function getUrlForImage(
+        $identifier,
+        $format,
+        $region = "full",
+        $size = "max",
+        $rotation = 0,
+        $quality = "default"
+    )
+    {
+        return URL::getInstance()->absoluteUrl("/image-library/$identifier/$region/$size/$rotation/$quality.$format");
+    }
 
     public function geFormattedImage(
         $identifier,

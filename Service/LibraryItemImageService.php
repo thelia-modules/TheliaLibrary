@@ -12,7 +12,7 @@
 
 namespace TheliaLibrary\Service;
 
-use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Thelia\Core\Translation\Translator;
 use TheliaLibrary\Model\LibraryImageQuery;
@@ -34,7 +34,7 @@ class LibraryItemImageService
     }
 
     public function createAndAssociateImage(
-        UploadedFile $file,
+        File $file,
         string $imageTitle = null,
         string $locale = null,
         $itemType,

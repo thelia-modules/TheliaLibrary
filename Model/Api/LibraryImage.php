@@ -64,6 +64,9 @@ class LibraryImage extends BaseApiModel
      */
     protected $url = null;
 
+    protected $width = null;
+    protected $height = null;
+
     /**
      * @var LibraryImageService
      */
@@ -83,13 +86,6 @@ class LibraryImage extends BaseApiModel
     public function createOrUpdateFromData($data, $locale = null): void
     {
         parent::createOrUpdateFromData($data, $locale);
-
-        $this->generateUrl();
-    }
-
-    public function generateUrl($width = null, $height = null): void
-    {
-        $this->url = $this->libraryImageService->getImageFilePublicUrl($this->getFileName(), $width, $height);
     }
 
     /**
@@ -145,17 +141,23 @@ class LibraryImage extends BaseApiModel
      */
     public function getUrl(): ?string
     {
-        return $this->url;
+        return $this->libraryImageService->getImagePublicUrl($this->getTheliaModel(), $this->width, $this->height);
     }
 
     /**
-     * @param string $url
+     * @param null $width
      */
-    public function setUrl(?string $url): self
+    public function setWidth($width): void
     {
-        $this->url = $url;
+        $this->width = $width;
+    }
 
-        return $this;
+    /**
+     * @param null $height
+     */
+    public function setHeight($height): void
+    {
+        $this->height = $height;
     }
 
     protected function getTheliaModel($propelModelName = null)
