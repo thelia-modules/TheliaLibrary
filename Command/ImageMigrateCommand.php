@@ -1,5 +1,15 @@
 <?php
 
+/*
+ * This file is part of the Thelia package.
+ * http://www.thelia.net
+ *
+ * (c) OpenStudio <info@thelia.net>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace TheliaLibrary\Command;
 
 use Propel\Runtime\ActiveQuery\ModelCriteria;
@@ -10,16 +20,15 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpFoundation\File\File;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Thelia\Command\ContainerAwareCommand;
 use Thelia\Model\ConfigQuery;
 use Thelia\Model\FolderImage;
-use TheliaLibrary\Service\LibraryImageService;
+use Thelia\Model\LangQuery;
 use TheliaLibrary\Service\LibraryItemImageService;
 
 class ImageMigrateCommand extends ContainerAwareCommand
 {
-    protected $libraryItemImageService;
+    protected LibraryItemImageService $libraryItemImageService;
 
     public function __construct(LibraryItemImageService $libraryItemImageService)
     {
@@ -35,7 +44,7 @@ class ImageMigrateCommand extends ContainerAwareCommand
             ->addOption(
                 'itemTypes',
                 null,
-                InputOption::VALUE_OPTIONAL|InputOption::VALUE_IS_ARRAY,
+                InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY,
                 'Only image of this item type will be migrated',
                 []
             );
@@ -48,33 +57,36 @@ class ImageMigrateCommand extends ContainerAwareCommand
 
         $baseSourceFilePath = ConfigQuery::read('images_library_path');
         if ($baseSourceFilePath === null) {
-            $baseSourceFilePath = THELIA_LOCAL_DIR . 'media' . DS . 'images';
+            $baseSourceFilePath = THELIA_LOCAL_DIR.'media'.DS.'images';
         } else {
-            $baseSourceFilePath = THELIA_ROOT . $baseSourceFilePath;
+            $baseSourceFilePath = THELIA_ROOT.$baseSourceFilePath;
         }
 
+        $langs = LangQuery::create()
+            ->find();
+
         foreach ($itemTypes as $itemType) {
-            $output->writeln("<bg=blue>============================================================= </>");
+            $output->writeln('<bg=blue>============================================================= </>');
             $output->writeln("<fg=blue>Image migration for item type $itemType started</>");
+
             /** @var ModelCriteria $queryClass */
-            $queryClass = "Thelia\\Model\\".ucfirst($itemType)."ImageQuery";
+            $queryClass = 'Thelia\\Model\\'.ucfirst($itemType).'ImageQuery';
 
             /** @var ModelCriteria $query */
             $images = ($queryClass::create())->find();
-            $output->writeln(count($images)." image found for type $itemType");
-            $progressBar = new ProgressBar($output, count($images));
+            $output->writeln(\count($images)." image found for type $itemType");
+            $progressBar = new ProgressBar($output, \count($images));
             $progressBar->start();
 
-            $itemIdGetter = "get".ucfirst($itemType).'Id';
-            /** @var FolderImage $image */
+            $itemIdGetter = 'get'.ucfirst($itemType).'Id';
             foreach ($images as $image) {
-                $tmpFilePath = "/tmp/image/".$image->getFile();
+                $tmpFilePath = '/tmp/image/'.$image->getFile();
                 $filesystem->copy($baseSourceFilePath.DS.$itemType.DS.$image->getFile(), $tmpFilePath);
                 $uploadedFile = new File(
                     $tmpFilePath
                 );
 
-                $this->libraryItemImageService->createAndAssociateImage(
+                $itemImage = $this->libraryItemImageService->createAndAssociateImage(
                     $uploadedFile,
                     $image->getTitle(),
                     $image->getLocale(),
@@ -84,27 +96,30 @@ class ImageMigrateCommand extends ContainerAwareCommand
                     $image->getVisible(),
                     $image->getPosition()
                 );
+                $libraryImage = $itemImage->getLibraryImage();
+                $libraryFilePath = $libraryImage->getFileName();
+
+
+                foreach ($langs as $lang) {
+                    $image->setLocale($lang->getLocale());
+
+                    if (empty($image->getTitle())) {
+                        continue;
+                    }
+
+                    $libraryImage->setLocale($lang->getLocale())
+                        ->setTitle($image->getTitle())
+                        ->setFileName($libraryFilePath)
+                        ->save();
+                }
                 $progressBar->advance();
             }
             $progressBar->finish();
+            $output->writeln("");
             $output->writeln("<info>Image migration for item type $itemType ended</info>");
-            $output->writeln("<bg=blue>============================================================= </>");
+            $output->writeln('<bg=blue>============================================================= </>');
         }
 
         return 1;
-    }
-
-    private function migrateForItemType($itemType, OutputInterface $output)
-    {
-        /** @var ModelCriteria $queryClass */
-        $queryClass = "Thelia\\Model\\".ucfirst($itemType)."ImageQuery";
-
-        /** @var ModelCriteria $query */
-        $images = ($queryClass::create())->find();
-
-        /** @var ActiveRecordInterface $image */
-        foreach ($images as $image) {
-            $output->writeln($image->getFile());
-        }
     }
 }
