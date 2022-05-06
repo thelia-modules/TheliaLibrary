@@ -31,6 +31,7 @@ CREATE TABLE `library_item_image`
     `visible` TINYINT,
     `position` INTEGER,
     PRIMARY KEY (`id`),
+    INDEX `library_item_image_item_index` (`item_type`, `item_id`),
     INDEX `fi_library_item_image_image_id` (`image_id`),
     CONSTRAINT `fk_library_item_image_image_id`
         FOREIGN KEY (`image_id`)

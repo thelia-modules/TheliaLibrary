@@ -1,5 +1,15 @@
 <?php
 
+/*
+ * This file is part of the Thelia package.
+ * http://www.thelia.net
+ *
+ * (c) OpenStudio <info@thelia.net>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace TheliaLibrary\Controller\Admin;
 
 use OpenApi\Annotations as OA;
@@ -65,8 +75,7 @@ class ItemImageController extends BaseAdminOpenApiController
         Request $request,
         ModelFactory $modelFactory,
         LibraryItemImageService $libraryItemImageService
-    )
-    {
+    ) {
         $data = json_decode($request->getContent(), true);
         /** @var LibraryItemImage $openApiLibraryItemImage */
         $openApiLibraryItemImage = $modelFactory->buildModel('LibraryItemImage', $data);
@@ -138,16 +147,15 @@ class ItemImageController extends BaseAdminOpenApiController
         Request $request,
         ModelFactory $modelFactory,
         LibraryItemImageService $libraryItemImageService
-    )
-    {
+    ) {
         $data = json_decode($request->getContent(), true);
 
         $image = $libraryItemImageService->updateImageAssociation(
             $itemImageId,
-            $data['code']?? null,
-            $data['visible']?? null,
-            $data['position']?? null,
-            $data['positionMovement']?? null
+            $data['code'] ?? null,
+            $data['visible'] ?? null,
+            $data['position'] ?? null,
+            $data['positionMovement'] ?? null
         );
 
         return OpenApiService::jsonResponse($modelFactory->buildModel('LibraryItemImage', $image));
@@ -182,10 +190,9 @@ class ItemImageController extends BaseAdminOpenApiController
     public function deleteAssociation(
         $itemImageId,
         LibraryItemImageService $libraryItemImageService
-    )
-    {
+    ) {
         $libraryItemImageService->deleteImageAssociation($itemImageId);
 
-        return new JsonResponse("Success", 204);
+        return new JsonResponse('Success', 204);
     }
 }

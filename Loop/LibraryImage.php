@@ -1,5 +1,15 @@
 <?php
 
+/*
+ * This file is part of the Thelia package.
+ * http://www.thelia.net
+ *
+ * (c) OpenStudio <info@thelia.net>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace TheliaLibrary\Loop;
 
 use Thelia\Action\Image;
@@ -14,19 +24,18 @@ use Thelia\Type\TypeCollection;
 use TheliaLibrary\Model\LibraryImageQuery;
 use TheliaLibrary\Model\LibraryItemImageQuery;
 use TheliaLibrary\Service\LibraryImageService;
+use TheliaLibrary\Model\LibraryImage as LibraryImageModel;
 
 /**
  * Class LibraryImage.
  *
- * @method int getId()
- * @method int getItemId()
+ * @method int    getId()
+ * @method int    getItemId()
  * @method string getItemType()
  * @method string getCode()
- * @method boolean getOnlyVisible()
- * @method int getWidth()
- * @method int getHeight()
- * @method int getAllowZoom()
- * @method boolean getResizeMode()
+ * @method bool   getOnlyVisible()
+ * @method int    getWidth()
+ * @method int    getHeight()
  */
 class LibraryImage extends BaseI18nLoop implements PropelSearchLoopInterface
 {
@@ -58,7 +67,6 @@ class LibraryImage extends BaseI18nLoop implements PropelSearchLoopInterface
     public function buildModelCriteria()
     {
         $query = LibraryImageQuery::create();
-
 
         if (null !== $id = $this->getId()) {
             $query->filterById($id);
@@ -98,27 +106,25 @@ class LibraryImage extends BaseI18nLoop implements PropelSearchLoopInterface
 
     public function parseResults(LoopResult $loopResult)
     {
-        /** @var LibraryImage $entry */
-        foreach ($loopResult->getResultDataCollection() as $entry) {
+        /** @var LibraryImageModel $image */
+        foreach ($loopResult->getResultDataCollection() as $image) {
             /** @var LibraryImageService $libraryImageService */
             $libraryImageService = $this->container->get('thelia_library_image');
-            $imageUrl = $libraryImageService->getImageFilePublicUrl(
-                $entry->getVirtualColumn('i18n_FILE_NAME'),
+            $imageUrl = $libraryImageService->getImagePublicUrl(
+                $image,
                 $this->getWidth(),
-                $this->getHeight(),
-                $this->getResizeMode(),
-                $this->getAllowZoom()
+                $this->getHeight()
             );
 
-            $row = new LoopResultRow($entry);
+            $row = new LoopResultRow($image);
             $row
-                ->set('ID', $entry->getId())
-                ->set('TITLE', $entry->getVirtualColumn('i18n_TITLE'))
-                ->set('FILE_NAME', $entry->getVirtualColumn('i18n_FILE_NAME'))
+                ->set('ID', $image->getId())
+                ->set('TITLE', $image->getVirtualColumn('i18n_TITLE'))
+                ->set('FILE_NAME', $image->getVirtualColumn('i18n_FILE_NAME'))
                 ->set('URL', $imageUrl)
             ;
 
-            $this->addOutputFields($row, $entry);
+            $this->addOutputFields($row, $image);
 
             $loopResult->addRow($row);
         }

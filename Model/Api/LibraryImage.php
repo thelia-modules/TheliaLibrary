@@ -1,10 +1,20 @@
 <?php
 
+/*
+ * This file is part of the Thelia package.
+ * http://www.thelia.net
+ *
+ * (c) OpenStudio <info@thelia.net>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace TheliaLibrary\Model\Api;
 
 use OpenApi\Annotations as OA;
-use OpenApi\Model\Api\BaseApiModel;
 use OpenApi\Constraint as Constraint;
+use OpenApi\Model\Api\BaseApiModel;
 use OpenApi\Model\Api\ModelFactory;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
@@ -12,8 +22,8 @@ use Thelia\TaxEngine\TaxEngine;
 use TheliaLibrary\Service\LibraryImageService;
 
 /**
- * Class LibraryImage
- * @package OpenApi\Model\Api
+ * Class LibraryImage.
+ *
  * @OA\Schema(
  *     schema="LibraryImage",
  *     title="LibraryImage",
@@ -22,7 +32,7 @@ use TheliaLibrary\Service\LibraryImageService;
 class LibraryImage extends BaseApiModel
 {
     /**
-     * @var integer
+     * @var int
      * @OA\Property(
      *    type="integer",
      * )
@@ -46,7 +56,6 @@ class LibraryImage extends BaseApiModel
      */
     protected $fileName;
 
-
     /**
      * @var string
      * @OA\Property(
@@ -54,6 +63,9 @@ class LibraryImage extends BaseApiModel
      * )
      */
     protected $url = null;
+
+    protected $width = null;
+    protected $height = null;
 
     /**
      * @var LibraryImageService
@@ -74,13 +86,6 @@ class LibraryImage extends BaseApiModel
     public function createOrUpdateFromData($data, $locale = null): void
     {
         parent::createOrUpdateFromData($data, $locale);
-
-        $this->generateUrl();
-    }
-
-    public function generateUrl($width = null, $height = null)
-    {
-        $this->url = $this->libraryImageService->getImageFilePublicUrl($this->getFileName(), $width, $height);
     }
 
     /**
@@ -91,13 +96,10 @@ class LibraryImage extends BaseApiModel
         return $this->id;
     }
 
-    /**
-     * @param int $id
-     * @return LibraryImage
-     */
-    public function setId(int $id): LibraryImage
+    public function setId(int $id): self
     {
         $this->id = $id;
+
         return $this;
     }
 
@@ -111,11 +113,11 @@ class LibraryImage extends BaseApiModel
 
     /**
      * @param string $title
-     * @return LibraryImage
      */
-    public function setTitle(?string $title): LibraryImage
+    public function setTitle(?string $title): self
     {
         $this->title = $title;
+
         return $this;
     }
 
@@ -127,13 +129,10 @@ class LibraryImage extends BaseApiModel
         return $this->fileName;
     }
 
-    /**
-     * @param string|null $fileName
-     * @return LibraryImage
-     */
-    public function setFileName(?string $fileName = null): LibraryImage
+    public function setFileName(?string $fileName = null): self
     {
         $this->fileName = $fileName;
+
         return $this;
     }
 
@@ -142,17 +141,23 @@ class LibraryImage extends BaseApiModel
      */
     public function getUrl(): ?string
     {
-        return $this->url;
+        return $this->libraryImageService->getImagePublicUrl($this->getTheliaModel(), $this->width, $this->height);
     }
 
     /**
-     * @param string $url
-     * @return LibraryImage
+     * @param null $width
      */
-    public function setUrl(?string $url): LibraryImage
+    public function setWidth($width): void
     {
-        $this->url = $url;
-        return $this;
+        $this->width = $width;
+    }
+
+    /**
+     * @param null $height
+     */
+    public function setHeight($height): void
+    {
+        $this->height = $height;
     }
 
     protected function getTheliaModel($propelModelName = null)
