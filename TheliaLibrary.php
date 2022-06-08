@@ -21,9 +21,9 @@ use Thelia\Module\BaseModule;
 class TheliaLibrary extends BaseModule
 {
     /** @var string */
-    const DOMAIN_NAME = 'thelialibrary';
+    public const DOMAIN_NAME = 'thelialibrary';
 
-    const DEFAULT_IMAGE_DIRECTORY = THELIA_LOCAL_DIR.'library/images/';
+    public const DEFAULT_IMAGE_DIRECTORY = THELIA_LOCAL_DIR.'library/images/';
 
     public function preActivation(ConnectionInterface $con = null): bool
     {
