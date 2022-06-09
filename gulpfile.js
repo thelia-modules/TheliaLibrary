@@ -2,7 +2,7 @@ const { src, dest, watch } = require("gulp");
 
 function copy() {
   return src("node_modules/@thelia/media-library/dist/*").pipe(
-    dest("templates/backoffice/default/tb-plugin/vendor/")
+    dest("templates/backOffice/default/tb-plugin/vendor/")
   );
 }
 
