@@ -13,12 +13,14 @@
 namespace TheliaLibrary\Model\Api;
 
 use OpenApi\Annotations as OA;
-use OpenApi\Constraint as Constraint;
+use OpenApi\Constraint;
 use OpenApi\Model\Api\BaseApiModel;
 use OpenApi\Model\Api\ModelFactory;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Thelia\TaxEngine\TaxEngine;
+use TheliaLibrary\Model\LibraryImageTagQuery;
+use TheliaLibrary\Model\LibraryTagQuery;
 use TheliaLibrary\Service\LibraryImageService;
 
 /**
@@ -66,6 +68,16 @@ class LibraryImage extends BaseApiModel
 
     protected $width = null;
     protected $height = null;
+
+    /**
+     * @var array
+     * @OA\Property(
+     *     readOnly=true,
+     *    type="array",
+     *     @OA\Items(type="string")
+     * )
+     */
+    protected $tags = [];
 
     /**
      * @var LibraryImageService
@@ -160,8 +172,50 @@ class LibraryImage extends BaseApiModel
         $this->height = $height;
     }
 
+    public function getTags(): array
+    {
+        return $this->tags;
+    }
+
+    /**
+     * @param array $tags
+     */
+    public function setTags($tags): void
+    {
+        $this->tags = $tags;
+    }
+
     protected function getTheliaModel($propelModelName = null)
     {
         return parent::getTheliaModel(\TheliaLibrary\Model\LibraryImage::class);
+    }
+
+    public function createFromTheliaModel($theliaModel, $locale = null): void
+    {
+        parent::createFromTheliaModel($theliaModel, $locale);
+
+        $tags = array_map(
+            function ($item) {
+                $query = LibraryTagQuery::create()
+                ->filterById($item['TagId'])
+                ->useI18nQuery()
+                    ->filterByLocale('en_US')
+                    ->filterById($item['TagId'])
+                ->endUse()
+                ->findOne();
+
+                return [
+                    'id' => $query->getId(),
+                    'title' => $query->getTitle(),
+                    'colorCode' => $query->getColorCode(),
+                ];
+            },
+            LibraryImageTagQuery::create()
+                ->filterByImageId($this->getId())
+                ->find()
+                ->toArray()
+        );
+
+        $this->setTags($tags);
     }
 }

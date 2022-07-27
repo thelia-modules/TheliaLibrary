@@ -30,4 +30,28 @@
     </index>
   </table>
 
+  <table name="library_tag" namespace="TheliaLibrary\Model">
+    <column name="id" primaryKey="true" required="true" type="INTEGER" autoIncrement="true"/>
+    <column name="title" type="VARCHAR" />
+    <column name="color_code" type="VARCHAR" />
+    <behavior name="i18n">
+      <parameter name="i18n_columns" value="title" />
+    </behavior>
+  </table>
+
+  <table name="library_image_tag" namespace="TheliaLibrary\Model">
+    <column name="id" primaryKey="true" required="true" type="INTEGER" autoIncrement="true"/>
+    <column name="image_id" type="INTEGER" />
+    <column name="tag_id" type="INTEGER" />
+
+    <foreign-key foreignTable="library_image" name="fk_library_image_tag_image_id" onDelete="CASCADE" onUpdate="RESTRICT">
+      <reference foreign="id" local="image_id" />
+    </foreign-key>
+
+    <foreign-key foreignTable="library_tag" name="fk_library_image_tag_tag_id" onDelete="CASCADE" onUpdate="RESTRICT">
+      <reference foreign="id" local="tag_id" />
+    </foreign-key>
+
+  </table>
+
 </database>
