@@ -195,19 +195,21 @@ class LibraryImage extends BaseApiModel
         parent::createFromTheliaModel($theliaModel, $locale);
 
         $tags = array_map(
-            function ($item) {
+            function ($item) use ($locale) {
                 $query = LibraryTagQuery::create()
                 ->filterById($item['TagId'])
                 ->useI18nQuery()
-                    ->filterByLocale('en_US')
+                    ->filterByLocale($locale)
                     ->filterById($item['TagId'])
                 ->endUse()
-                ->findOne();
+                ->with('LibraryTagI18n');
+
+                $tag = $query->find()->getFirst();
 
                 return [
-                    'id' => $query->getId(),
-                    'title' => $query->getTitle(),
-                    'colorCode' => $query->getColorCode(),
+                    'id' => $tag->getId(),
+                    'title' => $tag->getTitle(),
+                    'colorCode' => $tag->getColorCode(),
                 ];
             },
             LibraryImageTagQuery::create()
