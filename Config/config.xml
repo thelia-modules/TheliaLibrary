@@ -31,7 +31,7 @@
     <hooks>
       <hook id="thelialibrary.tb.plugin" class="TheliaLibrary\Hook\BackHook">
         <tag name="hook.event_listener" event="thelia.blocks.plugins" type="back" templates="render:tb-plugin/import-plugin.html" />
-        <!-- <tag name="hook.event_listener" event="thelia.blocks.plugincss" type="back" templates="css:tb-plugin/dist/LgSeedsTheliaBlocksPlugin.css" /> -->
+        <tag name="hook.event_listener" event="thelia.blocks.plugincss" type="back" templates="render:tb-plugin/import-styles.html" />
       </hook>
     </hooks>
 

@@ -93,6 +93,13 @@ class ImageController extends BaseFrontOpenApiController
      *          )
      *     ),
      *     @OA\Parameter(
+     *          name="tagId",
+     *          in="query",
+     *          @OA\Schema(
+     *              type="integer"
+     *          )
+     *     ),
+     *     @OA\Parameter(
      *          name="width",
      *          in="query",
      *          @OA\Schema(
@@ -139,8 +146,8 @@ class ImageController extends BaseFrontOpenApiController
 
         if (null !== $title = $request->get('title')) {
             $imageQuery->useLibraryImageI18nQuery()
-                    ->filterByLocale($locale)
-                    ->filterByTitle("%$title%", Criteria::LIKE)
+                ->filterByLocale($locale)
+                ->filterByTitle("%$title%", Criteria::LIKE)
                 ->endUse();
         }
 
@@ -162,9 +169,14 @@ class ImageController extends BaseFrontOpenApiController
             $itemImageQuery = $this->getOrInitItemJoin($imageQuery, $itemImageQuery)->filterByVisible(true);
         }
 
+
         if (null !== $itemImageQuery) {
             $itemImageQuery->orderByPosition();
             $itemImageQuery->endUse();
+        }
+
+        if (null !== $tagId = $request->get("tagId")) {
+            $itemImageQuery = $imageQuery->useLibraryImageTagQuery()->filterByTagId($tagId)->endUse();
         }
 
         if (null !== $limit = $request->get('limit', 20)) {
@@ -184,6 +196,7 @@ class ImageController extends BaseFrontOpenApiController
                 $imageModel = $modelFactory->buildModel('LibraryImage', $image, $locale);
                 $imageModel->setWidth($width);
                 $imageModel->setHeight($height);
+
 
                 return $imageModel;
             },

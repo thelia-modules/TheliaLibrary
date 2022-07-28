@@ -19,6 +19,8 @@ use OpenApi\Service\OpenApiService;
 use Symfony\Component\Routing\Annotation\Route;
 use Thelia\Core\HttpFoundation\JsonResponse;
 use Thelia\Core\HttpFoundation\Request;
+use TheliaLibrary\Model\LibraryTag;
+use TheliaLibrary\Model\Base\LibraryTagQuery;
 use TheliaLibrary\Service\LibraryTagService;
 
 /**
@@ -26,6 +28,40 @@ use TheliaLibrary\Service\LibraryTagService;
  */
 class TagController extends BaseAdminOpenApiController
 {
+    /**
+     * @Route("", name="_view", methods="GET")
+     * @OA\Get(
+     *     path="/library/tag",
+     *     tags={"Library tag"},
+     *     summary="Get tags",
+     *     @OA\Response(
+     *          response="200",
+     *          description="Success",
+     *          @OA\JsonContent(ref="#/components/schemas/LibraryTag")
+     *     ),
+     *     @OA\Response(
+     *          response="400",
+     *          description="Bad request",
+     *          @OA\JsonContent(ref="#/components/schemas/Error")
+     *     )
+     * )
+     */
+    public function getTags(Request $request, ModelFactory $modelFactory)
+    {
+        $query = LibraryTagQuery::create();
+        $locale = $this->findLocale($request);
+
+        return OpenApiService::jsonResponse(array_map(
+            function (LibraryTag $tag) use ($modelFactory, $locale) {
+                /** @var \TheliaLibrary\Model\Api\LibraryTag $tagModel */
+                $tagModel = $modelFactory->buildModel('LibraryTag', $tag, $locale);
+
+                return $tagModel;
+            },
+            iterator_to_array($query->find())
+        ));
+    }
+
     /**
      * @Route("", name="_create", methods="POST")
      *
