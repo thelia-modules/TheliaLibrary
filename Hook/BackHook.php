@@ -12,8 +12,18 @@
 
 namespace TheliaLibrary\Hook;
 
+use Thelia\Core\Event\Hook\HookRenderEvent;
 use Thelia\Core\Hook\BaseHook;
 
 class BackHook extends BaseHook
 {
+    public function onItemEdition(HookRenderEvent $event): void
+    {
+        $content = $this->render('item-edition.html', [
+            'itemType' => $event->getArgument('itemType'),
+            'itemId' => $event->getArgument('itemId'),
+        ]);
+
+        $event->add($content);
+    }
 }
