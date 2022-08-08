@@ -20,6 +20,8 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
 use Thelia\Core\HttpFoundation\Request;
 use TheliaLibrary\Model\LibraryImageTag;
+use TheliaLibrary\Model\LibraryImageTagQuery;
+use TheliaLibrary\Model\LibraryTagQuery;
 use TheliaLibrary\Service\LibraryImageTagService;
 
 /**
@@ -74,7 +76,10 @@ class ImageTagController extends BaseAdminOpenApiController
             $openApiLibraryImageTag->getTagId(),
         );
 
-        return OpenApiService::jsonResponse($modelFactory->buildModel('LibraryImageTag', $image));
+        $query = LibraryTagQuery::create();
+        $tag = $query->findOneById($openApiLibraryImageTag->getTagId());
+
+        return OpenApiService::jsonResponse(["imageTag" => $modelFactory->buildModel('LibraryImageTag', $image), "tag" => $modelFactory->buildModel('LibraryTag', $tag)]);
     }
 
     /**
