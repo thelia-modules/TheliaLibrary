@@ -19,11 +19,13 @@ class BackHook extends BaseHook
 {
     public function onItemEdition(HookRenderEvent $event): void
     {
-        $content = $this->render('item-edition.html', [
-            'itemType' => $event->getArgument('itemType'),
-            'itemId' => $event->getArgument('itemId'),
-        ]);
+        if (!$this->getRequest()->get('force_legacy_imagemanager')) {
+            $content = $this->render('item-edition.html', [
+                'itemType' => $event->getArgument('itemType'),
+                'itemId' => $event->getArgument('itemId'),
+            ]);
 
-        $event->add($content);
+            $event->add($content);
+        }
     }
 }
