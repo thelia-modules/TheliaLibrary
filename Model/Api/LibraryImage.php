@@ -197,19 +197,27 @@ class LibraryImage extends BaseApiModel
         $tags = array_map(
             function ($item) use ($locale) {
                 $query = LibraryTagQuery::create()
-                ->filterById($item['TagId'])
-                ->useI18nQuery()
+                    ->filterById($item['TagId'])
+                    ->useI18nQuery()
                     ->filterByLocale($locale)
                     ->filterById($item['TagId'])
-                ->endUse()
-                ->with('LibraryTagI18n');
+                    ->endUse()
+                    ->with('LibraryTagI18n');
 
                 $tag = $query->find()->getFirst();
+                $association = LibraryImageTagQuery::create()->filterByImageId($this->getId())->filterByTagId($tag->getId())->findOne();
 
                 return [
-                    'id' => $tag->getId(),
-                    'title' => $tag->getTitle(),
-                    'colorCode' => $tag->getColorCode(),
+                    "tag" => [
+                        'id' => $tag->getId(),
+                        'title' => $tag->getTitle(),
+                        'colorCode' => $tag->getColorCode()
+                    ],
+                    "imageTag" => [
+                        "id" => $association->getId(),
+                        "imageId" => $this->getId(),
+                        "tagId" => $tag->getId()
+                    ]
                 ];
             },
             LibraryImageTagQuery::create()
