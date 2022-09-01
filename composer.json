@@ -5,7 +5,7 @@
   "type": "thelia-module",
   "require": {
     "thelia/installer": "~1.3",
-    "thelia/open-api-module": "dev-main"
+    "thelia/open-api-module": "2.1.1"
   },
   "extra": {
     "installer-name": "TheliaLibrary"
