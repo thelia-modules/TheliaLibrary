@@ -46,18 +46,20 @@ class TheliaLibrary extends BaseModule
      */
     public function update($currentVersion, $newVersion, ConnectionInterface $con = null): void
     {
-        $finder = Finder::create()
-            ->name('*.sql')
-            ->depth(0)
-            ->sortByName()
-            ->in(__DIR__.DS.'Config'.DS.'update');
+        if (file_exists(__DIR__.DS.'Config'.DS.'update')) {
+            $finder = Finder::create()
+                ->name('*.sql')
+                ->depth(0)
+                ->sortByName()
+                ->in(__DIR__.DS.'Config'.DS.'update');
 
-        $database = new Database($con);
+            $database = new Database($con);
 
-        /** @var \SplFileInfo $file */
-        foreach ($finder as $file) {
-            if (version_compare($currentVersion, $file->getBasename('.sql'), '<')) {
-                $database->insertSql(null, [$file->getPathname()]);
+            /** @var \SplFileInfo $file */
+            foreach ($finder as $file) {
+                if (version_compare($currentVersion, $file->getBasename('.sql'), '<')) {
+                    $database->insertSql(null, [$file->getPathname()]);
+                }
             }
         }
     }
