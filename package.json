@@ -12,11 +12,11 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "@thelia/media-library": "^1.0.2"
-  },
   "devDependencies": {
-    "husky": "^8.0.1",
-    "gulp": "^4.0.2"
+    "gulp": "^4.0.2",
+    "husky": "^8.0.1"
+  },
+  "dependencies": {
+    "@thelia/media-library": "^1.0.3"
   }
 }
