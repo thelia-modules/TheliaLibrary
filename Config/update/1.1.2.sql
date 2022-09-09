@@ -7,6 +7,15 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- library_tag_i18n
 -- ---------------------------------------------------------------------
 
+DROP TABLE IF EXISTS `library_tag`;
+
+CREATE TABLE `library_tag`
+(
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `color_code` VARCHAR(255),
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB;
+
 DROP TABLE IF EXISTS `library_image_tag`;
 
 CREATE TABLE `library_image_tag`
