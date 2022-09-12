@@ -13,7 +13,6 @@
 namespace TheliaLibrary\Command;
 
 use Propel\Runtime\ActiveQuery\ModelCriteria;
-use Propel\Runtime\ActiveRecord\ActiveRecordInterface;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -22,7 +21,6 @@ use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpFoundation\File\File;
 use Thelia\Command\ContainerAwareCommand;
 use Thelia\Model\ConfigQuery;
-use Thelia\Model\FolderImage;
 use Thelia\Model\LangQuery;
 use TheliaLibrary\Service\LibraryItemImageService;
 
@@ -73,7 +71,7 @@ class ImageMigrateCommand extends ContainerAwareCommand
             $queryClass = 'Thelia\\Model\\'.ucfirst($itemType).'ImageQuery';
 
             /** @var ModelCriteria $query */
-            $images = ($queryClass::create())->find();
+            $images = $queryClass::create()->find();
             $output->writeln(\count($images)." image found for type $itemType");
             $progressBar = new ProgressBar($output, \count($images));
             $progressBar->start();
@@ -99,7 +97,6 @@ class ImageMigrateCommand extends ContainerAwareCommand
                 $libraryImage = $itemImage->getLibraryImage();
                 $libraryFilePath = $libraryImage->getFileName();
 
-
                 foreach ($langs as $lang) {
                     $image->setLocale($lang->getLocale());
 
@@ -115,7 +112,7 @@ class ImageMigrateCommand extends ContainerAwareCommand
                 $progressBar->advance();
             }
             $progressBar->finish();
-            $output->writeln("");
+            $output->writeln('');
             $output->writeln("<info>Image migration for item type $itemType ended</info>");
             $output->writeln('<bg=blue>============================================================= </>');
         }

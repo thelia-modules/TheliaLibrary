@@ -15,8 +15,6 @@ namespace TheliaLibrary\Model\Api;
 use OpenApi\Annotations as OA;
 use OpenApi\Constraint;
 use OpenApi\Model\Api\BaseApiModel;
-use TheliaLibrary\Model\LibraryImageTagQuery;
-use TheliaLibrary\Model\LibraryTagQuery;
 
 /**
  * Class LibraryImageTag.

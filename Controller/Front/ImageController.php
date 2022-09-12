@@ -18,7 +18,6 @@ use Thelia\Controller\Front\BaseFrontController;
 use Thelia\Core\HttpFoundation\Response;
 use Thelia\Tools\URL;
 use TheliaLibrary\Service\ImageService;
-use TheliaLibrary\Service\ImageTransformationService;
 
 /**
  * @Route("/image-library", name="image_library_")

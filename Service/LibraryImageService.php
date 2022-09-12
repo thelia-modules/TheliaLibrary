@@ -24,8 +24,8 @@ use TheliaLibrary\TheliaLibrary;
 
 class LibraryImageService
 {
-    const LIBRARY_IMAGE_DIR = THELIA_WEB_DIR.'library'.DS.'images'.DS;
-    const LIBRARY_IMAGE_BASE_ROUTE = '/library/images/';
+    public const LIBRARY_IMAGE_DIR = THELIA_WEB_DIR.'library'.DS.'images'.DS;
+    public const LIBRARY_IMAGE_BASE_ROUTE = '/library/images/';
 
     protected EventDispatcherInterface $eventDispatcher;
 
@@ -102,8 +102,10 @@ class LibraryImageService
             return null;
         }
 
-        $format = pathinfo($image->getFileName(), PATHINFO_EXTENSION);
-        $size = "max";
+        $fileName = $this->imageService->getImageFileName($image);
+
+        $format = pathinfo($fileName, \PATHINFO_EXTENSION);
+        $size = 'max';
         if ($width || $height) {
             $size = $width.','.$height;
         }
@@ -130,7 +132,7 @@ class LibraryImageService
         }
 
         $image->setLocale($locale);
-        $fileName = method_exists($file, "getClientOriginalName") ? $file->getClientOriginalName(): $file->getFilename();
+        $fileName = method_exists($file, 'getClientOriginalName') ? $file->getClientOriginalName() : $file->getFilename();
 
         if (null === $title && null === $image->getTitle()) {
             $title = $fileName;

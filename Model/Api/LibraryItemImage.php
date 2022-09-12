@@ -13,7 +13,7 @@
 namespace TheliaLibrary\Model\Api;
 
 use OpenApi\Annotations as OA;
-use OpenApi\Constraint as Constraint;
+use OpenApi\Constraint;
 use OpenApi\Model\Api\BaseApiModel;
 
 /**

@@ -19,8 +19,8 @@ use OpenApi\Service\OpenApiService;
 use Symfony\Component\Routing\Annotation\Route;
 use Thelia\Core\HttpFoundation\JsonResponse;
 use Thelia\Core\HttpFoundation\Request;
-use TheliaLibrary\Model\LibraryTag;
 use TheliaLibrary\Model\Base\LibraryTagQuery;
+use TheliaLibrary\Model\LibraryTag;
 use TheliaLibrary\Service\LibraryTagService;
 
 /**

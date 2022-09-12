@@ -208,16 +208,16 @@ class LibraryImage extends BaseApiModel
                 $association = LibraryImageTagQuery::create()->filterByImageId($this->getId())->filterByTagId($tag->getId())->findOne();
 
                 return [
-                    "tag" => [
+                    'tag' => [
                         'id' => $tag->getId(),
                         'title' => $tag->getTitle(),
-                        'colorCode' => $tag->getColorCode()
+                        'colorCode' => $tag->getColorCode(),
                     ],
-                    "imageTag" => [
-                        "id" => $association->getId(),
-                        "imageId" => $this->getId(),
-                        "tagId" => $tag->getId()
-                    ]
+                    'imageTag' => [
+                        'id' => $association->getId(),
+                        'imageId' => $this->getId(),
+                        'tagId' => $tag->getId(),
+                    ],
                 ];
             },
             LibraryImageTagQuery::create()

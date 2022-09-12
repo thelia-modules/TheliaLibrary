@@ -19,25 +19,31 @@ use Imagine\Image\ImageInterface;
 use Imagine\Image\Palette\RGB;
 use Imagine\Image\Point;
 use Imagine\Imagick\Imagine as ImagickImagine;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Thelia\Model\ConfigQuery;
+use Thelia\Model\Lang;
 use Thelia\Tools\URL;
+use TheliaLibrary\Model\LibraryImage;
 use TheliaLibrary\Model\LibraryImageQuery;
 use TheliaLibrary\TheliaLibrary;
 
 class ImageService
 {
-    const MAX_ALLOWED_SIZE_FACTOR = 2;
+    public const MAX_ALLOWED_SIZE_FACTOR = 2;
+
+    public function __construct(private RequestStack $requestStack)
+    {
+    }
 
     public function getUrlForImage(
         $identifier,
         $format,
-        $region = "full",
-        $size = "max",
+        $region = 'full',
+        $size = 'max',
         $rotation = 0,
-        $quality = "default"
-    )
-    {
+        $quality = 'default'
+    ) {
         return URL::getInstance()->absoluteUrl("/image-library/$identifier/$region/$size/$rotation/$quality.$format");
     }
 
@@ -239,6 +245,29 @@ class ImageService
         return $image;
     }
 
+    public function getImageFileName(
+        LibraryImage $image = null
+    ) {
+        if (null == $image) {
+            return null;
+        }
+
+        $locale = $this->requestStack?->getCurrentRequest()?->getSession()?->getLang()->getLocale();
+
+        if (null !== $locale) {
+            $image->setLocale($locale);
+        }
+
+        $fileName = $image->getFileName();
+
+        if (null === $fileName) {
+            $fileName = $image->setLocale(Lang::getDefaultLanguage()->getLocale())->getFileName() ?? null;
+            $image->setLocale($locale);
+        }
+
+        return $fileName;
+    }
+
     public function openImage($identifier)
     {
         $imageModel = LibraryImageQuery::create()
@@ -249,9 +278,9 @@ class ImageService
             throw new HttpException(404, 'Image not found');
         }
 
-        $filePath = TheliaLibrary::getImageDirectory().$imageModel->getFileName();
+        $fileName = $this->getImageFileName($imageModel);
 
-        return $this->getImagineInstance()->open($filePath);
+        return $this->getImagineInstance()->open(TheliaLibrary::getImageDirectory().$fileName);
     }
 
     public function getImagineInstance()

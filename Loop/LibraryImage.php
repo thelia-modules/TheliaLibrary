@@ -21,10 +21,10 @@ use Thelia\Core\Template\Loop\Argument\Argument;
 use Thelia\Core\Template\Loop\Argument\ArgumentCollection;
 use Thelia\Type\EnumType;
 use Thelia\Type\TypeCollection;
+use TheliaLibrary\Model\LibraryImage as LibraryImageModel;
 use TheliaLibrary\Model\LibraryImageQuery;
 use TheliaLibrary\Model\LibraryItemImageQuery;
 use TheliaLibrary\Service\LibraryImageService;
-use TheliaLibrary\Model\LibraryImage as LibraryImageModel;
 
 /**
  * Class LibraryImage.
