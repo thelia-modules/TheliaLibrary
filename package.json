@@ -17,6 +17,7 @@
     "husky": "^8.0.1"
   },
   "dependencies": {
-    "@thelia/media-library": "^1.0.3"
+    "@thelia/blocks-editor": "^1.0.6",
+    "@thelia/media-library": "^1.0.4"
   }
 }
