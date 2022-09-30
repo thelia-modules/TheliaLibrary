@@ -92,7 +92,7 @@ class ImageService
         $width = $image->getSize()->getWidth();
 
         if ($region === 'square') {
-            $size = max($width, $height);
+            $size = min($width, $height);
 
             return $image->crop(
                 new Point(($width - $size) / 2, ($height - $size) / 2),
