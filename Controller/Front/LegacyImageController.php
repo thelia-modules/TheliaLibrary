@@ -12,10 +12,10 @@
 
 namespace TheliaLibrary\Controller\Front;
 
-use Symfony\Component\Routing\Annotation\Route;
 use Propel\Runtime\ActiveQuery\ModelCriteria;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\Routing\Annotation\Route;
 use Thelia\Controller\Front\BaseFrontController;
 use Thelia\Core\HttpFoundation\Response;
 use Thelia\Model\ConfigQuery;
@@ -48,7 +48,7 @@ class LegacyImageController extends BaseFrontController
             throw new HttpException(400, 'Bad format value');
         }
 
-        $formattedImagePath = THELIA_WEB_DIR.'legacy-image-library'.DS.$itemType."_image_".$imageId.DS.$region.DS.$size.DS.$rotation;
+        $formattedImagePath = THELIA_WEB_DIR.'legacy-image-library'.DS.$itemType.'_image_'.$imageId.DS.$region.DS.$size.DS.$rotation;
         if (!is_dir($formattedImagePath)) {
             if (!@mkdir($formattedImagePath, 0755, true)) {
                 throw new \RuntimeException(sprintf('Failed to create %s file in cache directory', $formattedImagePath));
@@ -89,7 +89,7 @@ class LegacyImageController extends BaseFrontController
             json_encode(
                 [
                     '@context' => 'http://iiif.io/api/image/3/context.json',
-                    'id' => URL::getInstance()->absoluteUrl('legacy-image-library/'.$itemType."_image_".$imageId),
+                    'id' => URL::getInstance()->absoluteUrl('legacy-image-library/'.$itemType.'_image_'.$imageId),
                     'type' => 'ImageService3',
                     'protocol' => 'http://iiif.io/api/image',
                     'profile' => 'level2',
@@ -115,7 +115,7 @@ class LegacyImageController extends BaseFrontController
         $queryClass = $tableMap->getClassName().'ImageQuery';
 
         /** @var ProductImage $image */
-        $image = ($queryClass::create())
+        $image = $queryClass::create()
             ->filterById($imageId)
             ->filterByVisible(1)
             ->findOne();
