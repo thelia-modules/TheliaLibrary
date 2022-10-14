@@ -92,11 +92,11 @@ class ImageService
         $width = $image->getSize()->getWidth();
 
         if ($region === 'square') {
-            $size = min($width, $height);
+            $squareSize = min($width, $height);
 
             return $image->crop(
-                new Point(($width - $size) / 2, ($height - $size) / 2),
-                new Box($size, $size)
+                new Point(($width - $squareSize) / 2, ($height - $squareSize) / 2),
+                new Box($squareSize, $squareSize)
             );
         }
 
@@ -136,8 +136,10 @@ class ImageService
     {
         $upscaleMode = false !== strpos($size, '^');
         $keepAspectRatio = false !== strpos($size, '!');
+        $borders = false !== strpos($size, '*');
         $size = str_replace('^', '', $size);
         $size = str_replace('!', '', $size);
+        $size = str_replace('*', '', $size);
 
         if ($size === 'max') {
             if (!$upscaleMode) {
@@ -191,12 +193,27 @@ class ImageService
             throw new HttpException(400, 'Size out of bound');
         }
 
-        return $image->resize(
+        $resizedImage = $image->resize(
             new Box(
                 $newWidth,
                 $newHeight,
             )
         );
+
+        if ($borders) {
+            $palette = new RGB();
+            $canvas = new Box($values[0], $values[1]);
+            $canvasInstance = $this->getImagineInstance()
+            ->create($canvas, $palette->color('fff', 0));
+
+            $border_width = (int) (($values[0] - $resizedImage->getSize()->getWidth()) / 2);
+            $border_height = (int) (($values[1] - $resizedImage->getSize()->getHeight()) / 2);
+
+            return $canvasInstance
+            ->paste($resizedImage, new Point($border_width, $border_height));
+        }
+
+        return $resizedImage;
     }
 
     public function applyRotation(ImageInterface $image, $rotation, $format)
