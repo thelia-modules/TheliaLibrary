@@ -206,11 +206,11 @@ class ImageService
             $canvasInstance = $this->getImagineInstance()
             ->create($canvas, $palette->color('fff', 0));
 
-            $border_width = (int) (($values[0] - $resizedImage->getSize()->getWidth()) / 2);
-            $border_height = (int) (($values[1] - $resizedImage->getSize()->getHeight()) / 2);
+            $borderWidth = (int) (($values[0] - $resizedImage->getSize()->getWidth()) / 2);
+            $borderHeight = (int) (($values[1] - $resizedImage->getSize()->getHeight()) / 2);
 
             return $canvasInstance
-            ->paste($resizedImage, new Point($border_width, $border_height));
+            ->paste($resizedImage, new Point($borderWidth, $borderHeight));
         }
 
         return $resizedImage;
