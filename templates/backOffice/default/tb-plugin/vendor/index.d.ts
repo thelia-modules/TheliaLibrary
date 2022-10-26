@@ -22,6 +22,11 @@ declare type LibraryImage = {
     };
 };
 
+declare const UploadImage: ({ onSelect, compact, }: {
+    onSelect: (image: LibraryImage) => void;
+    compact?: boolean | undefined;
+}) => JSX.Element;
+
 declare function WrappedComponent(props: {
     isOpen: boolean;
     setIsOpen: Function;
@@ -29,4 +34,4 @@ declare function WrappedComponent(props: {
     onSelect: (image: LibraryImage) => void;
 }): JSX.Element;
 
-export { LibraryImage, WrappedComponent as default };
+export { LibraryImage, UploadImage, WrappedComponent as default };
