@@ -44,7 +44,7 @@ class ImageService
         $rotation = 0,
         $quality = 'default'
     ) {
-        return URL::getInstance()->absoluteUrl("/image-library/$identifier/$region/$size/$rotation/$quality.$format");
+        return ("/image-library/$identifier/$region/$size/$rotation/$quality.$format");
     }
 
     public function geFormattedImage(
@@ -59,14 +59,14 @@ class ImageService
             throw new HttpException(400, 'Bad format value');
         }
 
-        $formattedImagePath = THELIA_WEB_DIR.'image-library'.DS.$identifier.DS.$region.DS.$size.DS.$rotation;
+        $formattedImagePath = THELIA_WEB_DIR . 'image-library' . DS . $identifier . DS . $region . DS . $size . DS . $rotation;
         if (!is_dir($formattedImagePath)) {
             if (!@mkdir($formattedImagePath, 0755, true)) {
                 throw new \RuntimeException(sprintf('Failed to create %s file in cache directory', $formattedImagePath));
             }
         }
 
-        $formattedImagePath .= DS.$quality.'.'.$format;
+        $formattedImagePath .= DS . $quality . '.' . $format;
 
         if (file_exists($formattedImagePath)) {
             return $formattedImagePath;
@@ -204,13 +204,13 @@ class ImageService
             $palette = new RGB();
             $canvas = new Box($values[0], $values[1]);
             $canvasInstance = $this->getImagineInstance()
-            ->create($canvas, $palette->color('fff', 0));
+                ->create($canvas, $palette->color('fff', 0));
 
             $borderWidth = (int) (($values[0] - $resizedImage->getSize()->getWidth()) / 2);
             $borderHeight = (int) (($values[1] - $resizedImage->getSize()->getHeight()) / 2);
 
             return $canvasInstance
-            ->paste($resizedImage, new Point($borderWidth, $borderHeight));
+                ->paste($resizedImage, new Point($borderWidth, $borderHeight));
         }
 
         return $resizedImage;
@@ -297,7 +297,7 @@ class ImageService
 
         $fileName = $this->getImageFileName($imageModel);
 
-        return $this->getImagineInstance()->open(TheliaLibrary::getImageDirectory().$fileName);
+        return $this->getImagineInstance()->open(TheliaLibrary::getImageDirectory() . $fileName);
     }
 
     public function getImagineInstance()
