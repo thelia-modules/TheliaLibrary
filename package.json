@@ -18,6 +18,6 @@
   },
   "dependencies": {
     "@thelia/blocks-editor": "^1.0.9",
-    "@thelia/media-library": "^1.0.6"
+    "@thelia/media-library": "^1.0.7"
   }
 }
