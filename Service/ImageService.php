@@ -23,7 +23,6 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Thelia\Model\ConfigQuery;
 use Thelia\Model\Lang;
-use Thelia\Tools\URL;
 use TheliaLibrary\Model\LibraryImage;
 use TheliaLibrary\Model\LibraryImageQuery;
 use TheliaLibrary\TheliaLibrary;
