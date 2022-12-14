@@ -44,7 +44,7 @@ class ImageService
         $rotation = 0,
         $quality = 'default'
     ) {
-        return ("/image-library/$identifier/$region/$size/$rotation/$quality.$format");
+        return "/image-library/$identifier/$region/$size/$rotation/$quality.$format";
     }
 
     public function geFormattedImage(
@@ -59,14 +59,14 @@ class ImageService
             throw new HttpException(400, 'Bad format value');
         }
 
-        $formattedImagePath = THELIA_WEB_DIR . 'image-library' . DS . $identifier . DS . $region . DS . $size . DS . $rotation;
+        $formattedImagePath = THELIA_WEB_DIR.'image-library'.DS.$identifier.DS.$region.DS.$size.DS.$rotation;
         if (!is_dir($formattedImagePath)) {
             if (!@mkdir($formattedImagePath, 0755, true)) {
                 throw new \RuntimeException(sprintf('Failed to create %s file in cache directory', $formattedImagePath));
             }
         }
 
-        $formattedImagePath .= DS . $quality . '.' . $format;
+        $formattedImagePath .= DS.$quality.'.'.$format;
 
         if (file_exists($formattedImagePath)) {
             return $formattedImagePath;
@@ -297,7 +297,7 @@ class ImageService
 
         $fileName = $this->getImageFileName($imageModel);
 
-        return $this->getImagineInstance()->open(TheliaLibrary::getImageDirectory() . $fileName);
+        return $this->getImagineInstance()->open(TheliaLibrary::getImageDirectory().$fileName);
     }
 
     public function getImagineInstance()
