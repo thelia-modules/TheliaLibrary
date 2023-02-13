@@ -12,6 +12,7 @@
 
 namespace TheliaLibrary\Service;
 
+use Propel\Runtime\ActiveQuery\Criteria;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -132,17 +133,11 @@ class LibraryImageService
         }
 
         $image->setLocale($locale);
-        $fileName = method_exists($file, 'getClientOriginalName') ? $file->getClientOriginalName() : $file->getFilename();
-
-        if (null === $title && null === $image->getTitle()) {
-            $title = $fileName;
-        }
-
-        if (null != $title) {
-            $image->setTitle($title);
-        }
+        $imageName = null;
 
         if (null !== $file) {
+            $fileName = method_exists($file, 'getClientOriginalName') ? $file->getClientOriginalName() : $file->getFilename();
+
             // Remove old file if already exist for this locale
             if (null !== $image->getFileName()) {
                 $fileSystem = new Filesystem();
@@ -150,9 +145,25 @@ class LibraryImageService
             }
             $imageName = bin2hex(random_bytes(5)).'_'.$fileName;
             $file->move(TheliaLibrary::getImageDirectory(), $imageName);
-            $image->setFileName($imageName);
+            if (null === $title && null === $image->getTitle()) {
+                $title = $fileName;
+            }
         }
 
+        if (null === $imageName && null !== $imageId) {
+            $i18nWithFilename = LibraryImageI18nQuery::create()
+                ->filterById($imageId)
+                ->filterByFileName(null, Criteria::ISNOTNULL)
+                ->findOne();
+
+            $imageName = $i18nWithFilename?->getFileName();
+        }
+
+        if (null != $title) {
+            $image->setTitle($title);
+        }
+
+        $image->setFileName($imageName);
         $image->save();
 
         return $image;
