@@ -12,7 +12,6 @@ declare type ImageTag = {
 };
 declare type LibraryImage = {
     id: number | null;
-    url: string | null;
     fileName: string;
     title: string;
     tags: ImageTag[];
