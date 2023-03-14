@@ -17,6 +17,7 @@ use OpenApi\Constraint;
 use OpenApi\Model\Api\BaseApiModel;
 use OpenApi\Model\Api\ModelFactory;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Thelia\TaxEngine\TaxEngine;
 use TheliaLibrary\Model\LibraryImageTagQuery;
@@ -89,9 +90,10 @@ class LibraryImage extends BaseApiModel
         RequestStack $requestStack,
         TaxEngine $taxEngine,
         EventDispatcherInterface $dispatcher,
-        LibraryImageService $libraryImageService
+        LibraryImageService $libraryImageService,
+        ValidatorInterface $validator
     ) {
-        parent::__construct($modelFactory, $requestStack, $taxEngine, $dispatcher);
+        parent::__construct($modelFactory, $requestStack, $taxEngine, $dispatcher, $validator);
         $this->libraryImageService = $libraryImageService;
     }
 
