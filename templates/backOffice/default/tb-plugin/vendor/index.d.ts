@@ -21,9 +21,10 @@ declare type LibraryImage = {
     };
 };
 
-declare const UploadImage: ({ onSelect, compact, }: {
+declare const UploadImage: ({ onSelect, compact, uploadModes, }: {
     onSelect: (image: LibraryImage) => void;
     compact?: boolean | undefined;
+    uploadModes?: ("local" | "library")[] | undefined;
 }) => JSX.Element;
 
 declare function WrappedComponent(props: {
