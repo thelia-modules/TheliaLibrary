@@ -138,7 +138,7 @@ class ImageController extends BaseFrontOpenApiController
     ) {
         $locale = $this->findLocale($request);
 
-        $imageQuery = LibraryImageQuery::create();
+        $imageQuery = LibraryImageQuery::create()->orderById(Criteria::DESC);
 
         if (null !== $id = $request->get('id')) {
             $imageQuery->filterById($id);
