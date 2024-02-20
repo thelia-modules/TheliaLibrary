@@ -49,6 +49,7 @@ class LibraryImage extends BaseI18nLoop implements PropelSearchLoopInterface
             Argument::createBooleanTypeArgument('only_visible'),
             Argument::createIntTypeArgument('width'),
             Argument::createIntTypeArgument('height'),
+            Argument::createAlphaNumStringTypeArgument('format'),
             new Argument(
                 'resize_mode',
                 new TypeCollection(
@@ -113,7 +114,8 @@ class LibraryImage extends BaseI18nLoop implements PropelSearchLoopInterface
             $imageUrl = $libraryImageService->getImagePublicUrl(
                 $image,
                 $this->getWidth(),
-                $this->getHeight()
+                $this->getHeight(),
+                $this->getFormat()
             );
 
             $row = new LoopResultRow($image);
