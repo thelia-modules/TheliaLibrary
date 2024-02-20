@@ -97,7 +97,8 @@ class LibraryImageService
     public function getImagePublicUrl(
         LibraryImage $image = null,
         $width = null,
-        $height = null
+        $height = null,
+        $format = null
     ) {
         if (null == $image) {
             return null;
@@ -105,7 +106,7 @@ class LibraryImageService
 
         $fileName = $this->imageService->getImageFileName($image);
 
-        $format = pathinfo($fileName, \PATHINFO_EXTENSION);
+        $format = $format ?? pathinfo($fileName, \PATHINFO_EXTENSION);
         $size = 'max';
         if ($width || $height) {
             $size = $width.','.$height;
