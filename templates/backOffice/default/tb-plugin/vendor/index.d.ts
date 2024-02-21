@@ -1,3 +1,5 @@
+import { BlockPluginDefinition } from '@thelia/blocks-editor';
+
 declare type ImageTag = {
     imageTag: {
         id: number;
@@ -28,6 +30,8 @@ declare const UploadImage: ({ onSelect, compact, uploadModes, }: {
     compact?: boolean | undefined;
     uploadModes?: ("local" | "library")[] | undefined;
 }) => JSX.Element;
+declare const initialData: LibraryImage;
+declare const blockImage: BlockPluginDefinition<LibraryImage>;
 
 declare function WrappedComponent(props: {
     isOpen: boolean;
@@ -36,4 +40,4 @@ declare function WrappedComponent(props: {
     onSelect: (image: LibraryImage) => void;
 }): JSX.Element;
 
-export { LibraryImage, UploadImage, WrappedComponent as default };
+export { blockImage as BlockImage, initialData as BlockImageInitialData, LibraryImage, UploadImage, WrappedComponent as default };
