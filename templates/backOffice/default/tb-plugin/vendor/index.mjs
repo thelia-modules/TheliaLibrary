@@ -2855,7 +2855,8 @@ var require_lib = __commonJS({
 
 // src/Image/index.tsx
 import {
-  LocaleContext as LocaleContext2
+  LocaleContext as LocaleContext2,
+  components
 } from "@thelia/blocks-editor";
 import { useContext as useContext3, useEffect as useEffect3, useState as useState3 } from "react";
 
@@ -6949,6 +6950,7 @@ var messages = {
     BlockImage__LIBRARY_IMAGE_TAG_CONFIG: "Configuration des tags de",
     BlockImage__LIBRARY_IMAGE_ADD_TAG: "Ajouter un ou plusieurs tag",
     BlockImage__LIBRARY_IMAGE_SELECT_TAG: "S\xE9lectionnez un ou plusieurs tag",
+    BlockImage__TARGET: "Type d'ouverture du lien",
     REPLACE: "Remplacer",
     REPLACE_IMAGE: "Remplacer l'image",
     OPTIONAL: "Optionnel",
@@ -6985,6 +6987,7 @@ var messages = {
     BlockImage__LIBRARY_IMAGE_TAG_CONFIG: "Configure tags of",
     BlockImage__LIBRARY_IMAGE_ADD_TAG: "Add one or more tag",
     BlockImage__LIBRARY_IMAGE_SELECT_TAG: "Select one or more tag",
+    BlockImage__TARGET: "Link opening type",
     REPLACE: "Replace",
     REPLACE_IMAGE: "Replace image",
     OPTIONAL: "Optional",
@@ -13460,6 +13463,7 @@ var Oe = ({ reverseOrder: e2, position: t2 = "top-center", toastOptions: o2, gut
 
 // src/Image/index.tsx
 import { queryClient as queryClient2 } from "@thelia/fetcher";
+var Select = components.Select;
 var FromLocal = ({
   onSelect,
   isWide = false
@@ -13581,6 +13585,7 @@ var ImageInfos = ({
   const [url, setUrl] = useState3(image.link?.url || "");
   const [width, setWidth] = useState3(image.width || "");
   const [height, setHeight] = useState3(image.height || "");
+  const [target, setTarget] = useState3(image.target || "");
   const intl = useIntl();
   return /* @__PURE__ */ React.createElement("form", {
     className: "BlockImage__Infos__Form",
@@ -13605,7 +13610,20 @@ var ImageInfos = ({
     }),
     onChange: (e2) => setUrl(e2.target.value),
     onBlur: () => onChange({ link: { url } })
-  })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", null, intl.formatMessage({ id: "BlockImage__WIDTH" }), " (", intl.formatMessage({ id: "OPTIONAL" }), ")"), /* @__PURE__ */ React.createElement("input", {
+  })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", null, intl.formatMessage({ id: "BlockImage__TARGET" })), /* @__PURE__ */ React.createElement(Select, {
+    id: "BlockImage-field-target",
+    value: target,
+    name: "linkTarget",
+    onChange: (e2) => {
+      setTarget(e2.target.value);
+      onChange({ target: e2.target.value || "_self" });
+    },
+    disabled: !url
+  }, /* @__PURE__ */ React.createElement("option", {
+    value: "_self"
+  }, "self"), /* @__PURE__ */ React.createElement("option", {
+    value: "_blank"
+  }, "blank"))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", null, intl.formatMessage({ id: "BlockImage__WIDTH" }), " (", intl.formatMessage({ id: "OPTIONAL" }), ")"), /* @__PURE__ */ React.createElement("input", {
     className: "Input__Text",
     type: "text",
     name: "width",
@@ -13731,7 +13749,8 @@ var initialData = {
   fileName: "",
   width: "",
   height: "",
-  tags: []
+  tags: [],
+  target: "_self"
 };
 var moduleType = {
   id: "blockImage"

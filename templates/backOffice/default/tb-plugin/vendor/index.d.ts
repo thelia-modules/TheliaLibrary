@@ -23,6 +23,7 @@ declare type LibraryImage = {
         url: string;
         target?: string;
     };
+    target: HTMLAnchorElement["target"];
 };
 
 declare const UploadImage: ({ onSelect, compact, uploadModes, }: {
