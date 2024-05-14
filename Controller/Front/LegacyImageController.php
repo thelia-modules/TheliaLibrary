@@ -106,9 +106,16 @@ class LegacyImageController extends BaseFrontController
         );
     }
 
+    private function getSnakeFromCamelCase($camelCase): string
+    {
+        $pattern = '/(?<=\\w)(?=[A-Z])|(?<=[a-z])(?=[0-9])/';
+        $snakeCase = preg_replace($pattern, '_', $camelCase);
+        return strtolower($snakeCase);
+    }
+
     private function getSourceFilePath($itemType, $imageId)
     {
-        $tableMapClass = PropelResolver::getTableMapByTableName($itemType);
+        $tableMapClass = PropelResolver::getTableMapByTableName($this->getSnakeFromCamelCase($itemType));
         $tableMap = new $tableMapClass();
 
         /** @var ModelCriteria $queryClass */
