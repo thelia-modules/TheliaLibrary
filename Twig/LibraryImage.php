@@ -24,7 +24,8 @@ class LibraryImage extends AbstractExtension
         ];
     }
 
-    public function getImages(string $itemType ,int $itemId,int $width,int $height, string $format) {
+    public function getImages(string $itemType, int $itemId, string $width, string $height, string $format)
+    {
         $query = LibraryImageQuery::create();
    
         $images = $query
@@ -37,19 +38,19 @@ class LibraryImage extends AbstractExtension
 
         $results = [];
 
-        foreach($images as $image) {
+        foreach ($images as $image) {
 
             $imageUrl = $this->libraryImageService->getImagePublicUrl(
                 $image,
                 $width,
                 $height,
                 $format
-                );
+            );
           
-          $results[] = [
-            'URL' => $imageUrl,
-            'ID' => $image->getId(),
-            ];
+            $results[] = [
+              'URL' => $imageUrl,
+              'ID' => $image->getId(),
+              ];
         }
         return $results;
         
