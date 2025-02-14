@@ -115,11 +115,11 @@ class LegacyImageController extends BaseFrontController
 
     private function getSourceFilePath($itemType, $imageId)
     {
-        $tableMapClass = PropelResolver::getTableMapByTableName($this->getSnakeFromCamelCase($itemType));
+        $tableMapClass = PropelResolver::getTableMapByTableName($this->getSnakeFromCamelCase($itemType.'Image'));
         $tableMap = new $tableMapClass();
 
         /** @var ModelCriteria $queryClass */
-        $queryClass = $tableMap->getClassName().'ImageQuery';
+        $queryClass = $tableMap->getClassName().'Query';
 
         /** @var ProductImage $image */
         $image = $queryClass::create()
