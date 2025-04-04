@@ -48,7 +48,7 @@ class TheliaLibrary extends BaseModule
 
         $fs = new Filesystem();
         if (!$fs->exists(self::IMAGINE_CONFIG_FILE)) {
-            $fs->copy(THELIA_MODULE_DIR.'TheliaLibrary/config/liip_imagine_thelia.yaml.example', self::IMAGINE_CONFIG_FILE);
+            $fs->copy(THELIA_MODULE_DIR.'TheliaLibrary/Config/liip_imagine_thelia.yaml.example', self::IMAGINE_CONFIG_FILE);
         }
 
         return true;
@@ -81,7 +81,7 @@ class TheliaLibrary extends BaseModule
 
         $fs = new Filesystem();
         if (!$fs->exists(self::IMAGINE_CONFIG_FILE)) {
-            $fs->copy(THELIA_MODULE_DIR.'TheliaLibrary/config/liip_imagine_thelia.yaml.example', self::IMAGINE_CONFIG_FILE);
+            $fs->copy(THELIA_MODULE_DIR.'TheliaLibrary/Config/liip_imagine_thelia.yaml.example', self::IMAGINE_CONFIG_FILE);
         }
     }
 
