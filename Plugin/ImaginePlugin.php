@@ -3,22 +3,23 @@
 namespace TheliaLibrary\Plugin;
 
 use Liip\ImagineBundle\Imagine\Cache\CacheManager;
-use Liip\ImagineBundle\Imagine\Filter\FilterManager;
-use Liip\ImagineBundle\Service\FilterService;
 use Thelia\Model\ProductImageQuery;
+use TheliaLibrary\Service\ImageService;
+use TheliaLibrary\Service\LibraryImageService;
 use TheliaSmarty\Template\AbstractSmartyPlugin;
 use TheliaSmarty\Template\SmartyPluginDescriptor;
 
 class ImaginePlugin extends AbstractSmartyPlugin
 {
-    public function __construct(private readonly CacheManager $cacheManager)
+    public function __construct(private readonly CacheManager $cacheManager, private ImageService $imageService)
     {
     }
 
     public function getPluginDescriptors()
     {
         return [
-            new SmartyPluginDescriptor("function", "imagine_filter", $this, "handleImagineFilter")
+            new SmartyPluginDescriptor("function", "imagine_filter", $this, "handleImagineFilter"),
+            new SmartyPluginDescriptor("function", "getPictureTag", $this, "getPictureTag")
         ];
     }
 
@@ -42,33 +43,58 @@ class ImaginePlugin extends AbstractSmartyPlugin
         );
     }
 
-    private function getImagePathWithType($source, $sourceId)
+    public function getImages(array $params): array
     {
-        /** @var ProductImageQuery $query */
-        $query = $this->createSearchQuery($source, $sourceId);
-        $image = $query
-            ->orderByPosition()
-            ->findOne();
+        $images =  $this->imageService->getProcessedImages($params['source_type'], $params['source_id'], $params['filters']);
 
-        return $image?->getFile() ? '/'.$source.'/'.$image?->getFile() : '';
+        return $images;
     }
 
-    private function createSearchQuery($source, $sourceId)
+    public function getPictureTag(array $params): string
     {
-        $queryClass = 'Thelia\\Model\\'.ucfirst($source).'ImageQuery';
-        $filterMethod = sprintf('filterBy%sId', $source);
+        $images = $this->imageService->getProcessedImages($params['source_type'], $params['source_id'], $params['filters']);
 
-        // xxxImageQuery::create()
-        $method = new \ReflectionMethod($queryClass, 'create');
-        $search = $method->invoke(null); // Static !
 
-        // $query->filterByXXX(id)
-        if (null !== $sourceId) {
-            $method = new \ReflectionMethod($queryClass, $filterMethod);
-            $method->invoke($search, $sourceId);
+        if ((empty($images))) {
+            $images[] = [
+                'url' => $params['placeholder'],
+            ];
         }
 
-        return $search;
+        $processedImgTag = '';
+
+        foreach ($images as $image) {
+
+            if ($image['breakpoint'] === "default" || count($images) <= 1) {
+                $imgAttrs = $this->concatHtmlAttrs(array_replace($params['img_attrs'], ['alt' => $params['alt'] ?? ''], ['title' => $params['alt'] ?? '']));
+                $processedImgTag = $processedImgTag.'<img src="'.$image['url'].'" '.$imgAttrs.'/>';
+            } else {
+                $processedImgTag = $processedImgTag.'<source srcset="'.$image['url'].'" media="(min-width:'.$image['breakpoint'].')"/>';
+            }
+        }
+
+        if ($params['wrapper'] || count($images) > 1) {
+            $wrapperAttrs = $this->concatHtmlAttrs($params['wrapper_attrs']);
+
+            $tag = $params['wrapper'] ?? "picture";
+
+            return '<'.$tag.' '.$wrapperAttrs.'>'.$processedImgTag.'</'.$tag.'>';
+        }
+
+        return $processedImgTag;
     }
 
+
+    private function concatHtmlAttrs(?array $htmlAttrs): string
+    {
+        $attrs = '';
+
+        if (isset($htmlAttrs)) {
+            foreach ($htmlAttrs as $attr => $val) {
+                $attrs = $attrs.' '.$attr.'="'.$val.'"';
+            }
+        }
+
+        return $attrs;
+    }
 }

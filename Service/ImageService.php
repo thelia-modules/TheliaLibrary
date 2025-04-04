@@ -19,6 +19,7 @@ use Imagine\Image\ImageInterface;
 use Imagine\Image\Palette\RGB;
 use Imagine\Image\Point;
 use Imagine\Imagick\Imagine as ImagickImagine;
+use Liip\ImagineBundle\Imagine\Cache\CacheManager;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Thelia\Model\ConfigQuery;
@@ -31,7 +32,7 @@ class ImageService
 {
     public const MAX_ALLOWED_SIZE_FACTOR = 2;
 
-    public function __construct(private RequestStack $requestStack)
+    public function __construct(private RequestStack $requestStack, private readonly CacheManager $cacheManager)
     {
     }
 
@@ -321,5 +322,57 @@ class ImageService
     public function getMaxSize(ImageInterface $image)
     {
         return new Box($image->getSize()->getWidth() * 2, $image->getSize()->getHeight() * 2);
+    }
+
+    private function getImagePathWithType($source, $sourceId)
+    {
+        /** @var ProductImageQuery $query */
+        $query = $this->createSearchQuery($source, $sourceId);
+        $image = $query
+            ->orderByPosition()
+            ->findOne();
+
+        return $image?->getFile() ? '/'.$source.'/'.$image?->getFile() : '';
+    }
+
+    private function createSearchQuery($source, $sourceId)
+    {
+        $queryClass = 'Thelia\\Model\\'.ucfirst($source).'ImageQuery';
+        $filterMethod = sprintf('filterBy%sId', $source);
+
+        // xxxImageQuery::create()
+        $method = new \ReflectionMethod($queryClass, 'create');
+        $search = $method->invoke(null); // Static !
+
+        // $query->filterByXXX(id)
+        if (null !== $sourceId) {
+            $method = new \ReflectionMethod($queryClass, $filterMethod);
+            $method->invoke($search, $sourceId);
+        }
+
+        return $search;
+    }
+
+    public function getProcessedImages(string $type, int $id, array $sizes): array
+    {
+        $imagePath = $this->getImagePathWithType($type, $id);
+
+        $processedImages = [];
+
+        if ($imagePath) {
+            foreach ($sizes as $breakpoint => $filter) {
+                $url = $this->cacheManager->getBrowserPath(
+                    $imagePath,
+                    $filter
+                );
+
+                $processedImages[] = [
+                    'breakpoint' => $breakpoint,
+                    'url' => $url
+                ];
+            }
+        }
+
+        return $processedImages;
     }
 }
