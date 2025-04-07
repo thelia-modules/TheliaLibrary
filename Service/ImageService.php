@@ -31,6 +31,7 @@ use TheliaLibrary\TheliaLibrary;
 class ImageService
 {
     public const MAX_ALLOWED_SIZE_FACTOR = 2;
+    public const LIBRARY = 'library';
 
     public function __construct(private RequestStack $requestStack, private readonly CacheManager $cacheManager)
     {
@@ -262,6 +263,7 @@ class ImageService
         return $image;
     }
 
+
     public function getImageFileName(
         LibraryImage $image = null
     ) {
@@ -285,7 +287,7 @@ class ImageService
         return $fileName;
     }
 
-    public function openImage($identifier)
+    public function getImageModel($identifier)
     {
         $imageModel = LibraryImageQuery::create()
             ->filterById($identifier)
@@ -294,6 +296,14 @@ class ImageService
         if (null === $imageModel) {
             throw new HttpException(404, 'Image not found');
         }
+
+        return $imageModel;
+    }
+
+
+    public function openImage($identifier)
+    {
+        $imageModel = $this->getImageModel($identifier);
 
         $fileName = $this->getImageFileName($imageModel);
 
@@ -324,7 +334,7 @@ class ImageService
         return new Box($image->getSize()->getWidth() * 2, $image->getSize()->getHeight() * 2);
     }
 
-    private function getImagePathWithType($source, $sourceId)
+    public function getImagePathWithType($source, $sourceId)
     {
         /** @var ProductImageQuery $query */
         $query = $this->createSearchQuery($source, $sourceId);
@@ -338,6 +348,7 @@ class ImageService
     private function createSearchQuery($source, $sourceId)
     {
         $queryClass = 'Thelia\\Model\\'.ucfirst($source).'ImageQuery';
+
         $filterMethod = sprintf('filterBy%sId', $source);
 
         // xxxImageQuery::create()
@@ -353,19 +364,21 @@ class ImageService
         return $search;
     }
 
-    public function getProcessedImages(string $type, int $id, array $sizes): array
-    {
-        $imagePath = $this->getImagePathWithType($type, $id);
 
+    public function getProcessedImages(string $path, array | string  $filters): array
+    {
         $processedImages = [];
 
-        if ($imagePath) {
-            foreach ($sizes as $breakpoint => $filter) {
+        if (!is_array($filters)) {
+            $filters = ['default' => $filters];
+        }
+
+        if ($path) {
+            foreach ($filters as $breakpoint => $filter) {
                 $url = $this->cacheManager->getBrowserPath(
-                    $imagePath,
+                    $path,
                     $filter
                 );
-
                 $processedImages[] = [
                     'breakpoint' => $breakpoint,
                     'url' => $url
@@ -374,5 +387,19 @@ class ImageService
         }
 
         return $processedImages;
+    }
+
+    public function getImage(array $params): array
+    {
+        if ($params['source_type'] === self::LIBRARY) {
+            $imageModel = $this->getImageModel($params['source_id']);
+            $imagePath = $this->getImageFileName($imageModel);
+        } else {
+            $imagePath = $this->getImagePathWithType($params['source_type'], $params['source_id']);
+        }
+
+        $images = $this->getProcessedImages($imagePath, $params['filters']);
+
+        return $images;
     }
 }

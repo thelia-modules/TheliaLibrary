@@ -3,9 +3,7 @@
 namespace TheliaLibrary\Plugin;
 
 use Liip\ImagineBundle\Imagine\Cache\CacheManager;
-use Thelia\Model\ProductImageQuery;
 use TheliaLibrary\Service\ImageService;
-use TheliaLibrary\Service\LibraryImageService;
 use TheliaSmarty\Template\AbstractSmartyPlugin;
 use TheliaSmarty\Template\SmartyPluginDescriptor;
 
@@ -19,7 +17,8 @@ class ImaginePlugin extends AbstractSmartyPlugin
     {
         return [
             new SmartyPluginDescriptor("function", "imagine_filter", $this, "handleImagineFilter"),
-            new SmartyPluginDescriptor("function", "getPictureTag", $this, "getPictureTag")
+            new SmartyPluginDescriptor("function", "getImage", $this, "getImage"),
+            new SmartyPluginDescriptor("function", "getImageData", $this, "getImageData")
         ];
     }
 
@@ -43,47 +42,45 @@ class ImaginePlugin extends AbstractSmartyPlugin
         );
     }
 
-    public function getImages(array $params): array
-    {
-        $images =  $this->imageService->getProcessedImages($params['source_type'], $params['source_id'], $params['filters']);
 
-        return $images;
+    public function getImageData(array $params): array
+    {
+        return $this->imageService->getImage($params);
     }
 
-    public function getPictureTag(array $params): string
+    public function getImage(array $params): string
     {
-        $images = $this->imageService->getProcessedImages($params['source_type'], $params['source_id'], $params['filters']);
-
+        $images = $this->imageService->getImage($params);
 
         if ((empty($images))) {
             $images[] = [
                 'url' => $params['placeholder'],
+                'breakpoint' => 'default'
             ];
         }
 
         $processedImgTag = '';
 
         foreach ($images as $image) {
-
             if ($image['breakpoint'] === "default" || count($images) <= 1) {
-                $imgAttrs = $this->concatHtmlAttrs(array_replace($params['img_attrs'], ['alt' => $params['alt'] ?? ''], ['title' => $params['alt'] ?? '']));
-                $processedImgTag = $processedImgTag.'<img src="'.$image['url'].'" '.$imgAttrs.'/>';
+                $processedImgTag .= $this->createImgTag($image, $params);
             } else {
-                $processedImgTag = $processedImgTag.'<source srcset="'.$image['url'].'" media="(min-width:'.$image['breakpoint'].')"/>';
+                $processedImgTag .= $this->createSourceTag($image);
             }
         }
 
-        if ($params['wrapper'] || count($images) > 1) {
-            $wrapperAttrs = $this->concatHtmlAttrs($params['wrapper_attrs']);
+        if ($this->needsWrapper($params, $images)) {
+            $wrapperAttrs = $this->concatHtmlAttrs($params['wrapper_attrs'] ?? []);
 
             $tag = $params['wrapper'] ?? "picture";
 
-            return '<'.$tag.' '.$wrapperAttrs.'>'.$processedImgTag.'</'.$tag.'>';
+            $caption = isset($params['caption']) ? '<figcaption>'.$params['caption'].'</figcaption>' : '';
+
+            return '<'.$tag.' '.$wrapperAttrs.'>'.$processedImgTag.$caption.'</'.$tag.'>';
         }
 
         return $processedImgTag;
     }
-
 
     private function concatHtmlAttrs(?array $htmlAttrs): string
     {
@@ -91,10 +88,51 @@ class ImaginePlugin extends AbstractSmartyPlugin
 
         if (isset($htmlAttrs)) {
             foreach ($htmlAttrs as $attr => $val) {
-                $attrs = $attrs.' '.$attr.'="'.$val.'"';
+                if ($val) {
+                    $attrs = $attrs.' '.$attr.'="'.$val.'"';
+                }
             }
         }
 
         return $attrs;
+    }
+
+    private function concatStyle(?array $htmlStyle): string
+    {
+        $style = '';
+
+        if (isset($htmlStyle)) {
+            foreach ($htmlStyle as $prop => $val) {
+                if ($val) {
+                    $style = $style.$prop.':'.$val.';';
+                }
+            }
+        }
+
+        return $style;
+    }
+
+    private function createImgTag(array $image, array $params): string
+    {
+        $imgStyle = isset($params['img_style']) ? $this->concatStyle($params['img_style']) : '';
+
+        $imgAttrs = $this->concatHtmlAttrs(array_replace(
+            $params['img_attrs'] ?? [],
+            ['alt' => $params['alt'] ?? ''],
+            ['title' => $params['alt'] ?? ''],
+            ['style' => $imgStyle]
+        ));
+
+        return '<img src="'.$image['url'].'" '.$imgAttrs.'/>';
+    }
+
+    private function createSourceTag(array $image): string
+    {
+        return '<source srcset="'.$image['url'].'" media="(min-width:'.$image['breakpoint'].')"/>';
+    }
+
+    private function needsWrapper(array $params, array $images): bool
+    {
+        return (isset($params['wrapper']) && $params['wrapper']) || count($images) > 1;
     }
 }
