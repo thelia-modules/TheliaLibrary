@@ -27,7 +27,8 @@ class ImaginePlugin extends AbstractSmartyPlugin
         $path = null;
 
         if (array_key_exists('source', $params) && array_key_exists('source_id', $params)) {
-            $path = $this->getImagePathWithType($params['source'], $params['source_id']);
+            $imageData = $this->imageService->getImageDataWithType($params['source'], $params['source_id'], $params['position'] ?? null);
+            $path = $imageData['path'];
         }
 
         if (array_key_exists('path', $params)) {

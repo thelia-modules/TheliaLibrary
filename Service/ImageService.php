@@ -24,6 +24,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Thelia\Model\ConfigQuery;
 use Thelia\Model\Lang;
+use Thelia\Model\ProductImageQuery;
 use TheliaLibrary\Model\LibraryImage;
 use TheliaLibrary\Model\LibraryImageQuery;
 use TheliaLibrary\TheliaLibrary;
@@ -334,15 +335,30 @@ class ImageService
         return new Box($image->getSize()->getWidth() * 2, $image->getSize()->getHeight() * 2);
     }
 
-    public function getImagePathWithType($source, $sourceId)
+    public function getImageDataWithType($source, $sourceId, $position = null)
     {
         /** @var ProductImageQuery $query */
         $query = $this->createSearchQuery($source, $sourceId);
+
+        if(null !== $position) {
+            $query->filterByPosition($position);
+        }
+
         $image = $query
             ->orderByPosition()
             ->findOne();
 
-        return $image?->getFile() ? '/'.$source.'/'.$image?->getFile() : '';
+        $locale = $this->requestStack?->getCurrentRequest()?->getSession()?->getLang()->getLocale();
+
+        $image?->setLocale($locale);
+
+        return [
+            'path' => $image?->getFile() ? '/'.$source.'/'.$image?->getFile() : '',
+            'title' => $image?->getTitle(),
+            'description' => $image?->getDescription(),
+            'chapo' => $image?->getChapo(),
+            'postscriptum' => $image?->getPostscriptum()
+        ];
     }
 
     private function createSearchQuery($source, $sourceId)
@@ -365,8 +381,10 @@ class ImageService
     }
 
 
-    public function getProcessedImages(string $path, array | string  $filters): array
+    public function getProcessedImages(array $imageData, array | string  $filters): array
     {
+        $path = $imageData['path'];
+
         $processedImages = [];
 
         if (!is_array($filters)) {
@@ -389,16 +407,28 @@ class ImageService
         return $processedImages;
     }
 
+    protected function getLibraryImageData(LibraryImage $image)
+    {
+        $locale = $this->requestStack?->getCurrentRequest()?->getSession()?->getLang()->getLocale();
+
+        $image->setLocale($locale);
+
+        return [
+            'path' => $this->getImageFileName($image),
+            'title' => $image->getTitle(),
+        ];
+    }
+
     public function getImage(array $params): array
     {
         if ($params['source_type'] === self::LIBRARY) {
             $imageModel = $this->getImageModel($params['source_id']);
-            $imagePath = $this->getImageFileName($imageModel);
+            $imageData = $this->getLibraryImageData($imageModel);
         } else {
-            $imagePath = $this->getImagePathWithType($params['source_type'], $params['source_id']);
+            $imageData = $this->getImageDataWithType($params['source_type'], $params['source_id'], $params['position'] ?? null);
         }
 
-        $images = $this->getProcessedImages($imagePath, $params['filters']);
+        $images = $this->getProcessedImages($imageData, $params['filters']);
 
         return $images;
     }
