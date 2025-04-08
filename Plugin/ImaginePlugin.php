@@ -3,6 +3,7 @@
 namespace TheliaLibrary\Plugin;
 
 use Liip\ImagineBundle\Imagine\Cache\CacheManager;
+use Thelia\Model\ConfigQuery;
 use TheliaLibrary\Service\ImageService;
 use TheliaSmarty\Template\AbstractSmartyPlugin;
 use TheliaSmarty\Template\SmartyPluginDescriptor;
@@ -51,7 +52,10 @@ class ImaginePlugin extends AbstractSmartyPlugin
 
     public function getImage(array $params): string
     {
-        $images = $this->imageService->getImage($params);
+        $imageData = $this->imageService->getImage($params);
+
+        $images = $imageData['sources'];
+        $i18n = $imageData['i18n'];
 
         if ((empty($images))) {
             $images[] = [
@@ -64,6 +68,8 @@ class ImaginePlugin extends AbstractSmartyPlugin
 
         foreach ($images as $image) {
             if ($image['breakpoint'] === "default" || count($images) <= 1) {
+                $params['alt'] = $params['alt'] ?? $i18n['title'] ?? ConfigQuery::read("store_name");
+
                 $processedImgTag .= $this->createImgTag($image, $params);
             } else {
                 $processedImgTag .= $this->createSourceTag($image);

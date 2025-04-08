@@ -340,7 +340,7 @@ class ImageService
         /** @var ProductImageQuery $query */
         $query = $this->createSearchQuery($source, $sourceId);
 
-        if(null !== $position) {
+        if (null !== $position) {
             $query->filterByPosition($position);
         }
 
@@ -428,8 +428,11 @@ class ImageService
             $imageData = $this->getImageDataWithType($params['source_type'], $params['source_id'], $params['position'] ?? null);
         }
 
-        $images = $this->getProcessedImages($imageData, $params['filters']);
+        $sources = $this->getProcessedImages($imageData, $params['filters']);
 
-        return $images;
+        return [
+            'sources' => $sources,
+            'i18n' => $imageData
+        ];
     }
 }
