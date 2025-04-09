@@ -33,6 +33,7 @@ class ImageService
 {
     public const MAX_ALLOWED_SIZE_FACTOR = 2;
     public const LIBRARY = 'library';
+    public const PAGE = 'page';
 
     public function __construct(private RequestStack $requestStack, private readonly CacheManager $cacheManager)
     {
@@ -264,7 +265,6 @@ class ImageService
         return $image;
     }
 
-
     public function getImageFileName(
         LibraryImage $image = null
     ) {
@@ -288,24 +288,32 @@ class ImageService
         return $fileName;
     }
 
-    public function getImageModel($identifier)
+    public function getImageModel($identifier, $type = "library")
     {
-        $imageModel = LibraryImageQuery::create()
-            ->filterById($identifier)
-            ->findOne();
+        $query = LibraryImageQuery::create();
 
-        if (null === $imageModel) {
-            throw new HttpException(404, 'Image not found');
+        if ($type === self::PAGE) {
+            $query
+                ->useLibraryItemImageQuery()
+                ->filterByItemType($type)
+                ->filterByItemId($identifier)
+                ->endUse();
+        } else {
+            $query
+            ->filterById($identifier);
         }
 
-        return $imageModel;
+        return $query->findOne();
     }
 
 
     public function openImage($identifier)
     {
-        $imageModel = $this->getImageModel($identifier);
+        $imageModel = LibraryImageQuery::create()->filterById($identifier)->findOne();
 
+        if (null === $imageModel) {
+            throw new HttpException(404, 'Image not found');
+        }
         $fileName = $this->getImageFileName($imageModel);
 
         return $this->getImagineInstance()->open(TheliaLibrary::getImageDirectory().$fileName);
@@ -380,10 +388,9 @@ class ImageService
         return $search;
     }
 
-
     public function getProcessedImages(array $imageData, array | string  $filters): array
     {
-        $path = $imageData['path'];
+        $path = $imageData['path'] ?? '';
 
         $processedImages = [];
 
@@ -421,9 +428,10 @@ class ImageService
 
     public function getImage(array $params): array
     {
-        if ($params['source_type'] === self::LIBRARY) {
-            $imageModel = $this->getImageModel($params['source_id']);
-            $imageData = $this->getLibraryImageData($imageModel);
+        if ($params['source_type'] === self::LIBRARY || $params['source_type'] === self::PAGE) {
+            $imageModel = $this->getImageModel($params['source_id'], $params['source_type']);
+
+            $imageData = $imageModel ? $this->getLibraryImageData($imageModel) : [];
         } else {
             $imageData = $this->getImageDataWithType($params['source_type'], $params['source_id'], $params['position'] ?? null);
         }
