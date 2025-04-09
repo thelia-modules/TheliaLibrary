@@ -17,7 +17,7 @@ class TheliaLibraryTwigExtension extends AbstractExtension
     {
         return [
             new TwigFunction('getImageData', [$this, 'getImageData']),
-            new TwigFunction('getImages', [$this, 'getImages']),
+            new TwigFunction('getImage', [$this, 'getImage']),
         ];
     }
 
@@ -26,7 +26,7 @@ class TheliaLibraryTwigExtension extends AbstractExtension
         return $this->imageService->getImage($params);
     }
 
-    public function getImages(array $data)
+    public function getImage(array $data)
     {
         return $this->imagePluginService->getImage($data);
     }
