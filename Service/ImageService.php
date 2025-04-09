@@ -353,6 +353,7 @@ class ImageService
         }
 
         $image = $query
+            ->filterByVisible(1)
             ->orderByPosition()
             ->findOne();
 
