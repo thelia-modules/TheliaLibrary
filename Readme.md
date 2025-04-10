@@ -27,7 +27,7 @@ Here’s the params :
 | Param | Required | Description | Exemple |
 | --- | --- | --- | --- |
 | img_id | false | if you have the id of the current image, you can use this param with `source_type` | / |
-| source_type | true | source  | content, product etc. |
+| source_type | true | source  | content, product, category, library, page or folder |
 | source_id | false | The identifier of the object provided in the "source" parameter | / |
 | *filters* | true | the liip_imagine filter’ identifier you want to use on the image  | could be a simple value like `product_filter`  or a array, if you want to render several images in a picture html tag `*filters=*['1440px' =>'hero_large_desktop', 'default' => 'hero_default'` |
 | img_attrs | false | / | `img_attrs=['width' => '768px','height' => '660px','class' => "test-class-img"]` |
@@ -68,6 +68,7 @@ Here’s the exemple :
   img_style=[
     'display' => 'block'
   ]
+  limit=1
   placeholder={encore_manifest_file file="dist/images/placeholder.webp"}
 }
 ```
