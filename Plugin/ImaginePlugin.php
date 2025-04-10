@@ -19,8 +19,8 @@ class ImaginePlugin extends AbstractSmartyPlugin
     {
         return [
             new SmartyPluginDescriptor("function", "imagine_filter", $this, "handleImagineFilter"),
-            new SmartyPluginDescriptor("function", "getImage", $this, "getImage"),
-            new SmartyPluginDescriptor("function", "getImageData", $this, "getImageData")
+            new SmartyPluginDescriptor("function", "getImages", $this, "getImages"),
+            new SmartyPluginDescriptor("function", "getImagesData", $this, "getImagesData")
         ];
     }
 
@@ -45,13 +45,13 @@ class ImaginePlugin extends AbstractSmartyPlugin
         );
     }
 
-    public function getImageData(array $params): array
+    public function getImagesData(array $params): array
     {
-        return $this->imageService->getImage($params);
+        return $this->imageService->getImages($params);
     }
 
-    public function getImage(array $params): string
+    public function getImages(array $params): string
     {
-        return $this->imagePluginService->getImage($params);
+        return $this->imagePluginService->getImages($params);
     }
 }

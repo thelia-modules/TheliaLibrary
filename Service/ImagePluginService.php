@@ -12,48 +12,69 @@ class ImagePluginService
     {
     }
 
-    public function getImage(array $params): string
+    public function getImages(array $params): string
     {
-        $imageData = $this->imageService->getImage($params);
+        $imagesData = $this->imageService->getImages($params);
 
-        $images = $imageData['sources'];
-        $i18n = $imageData['i18n'];
-   
-        if (empty($images) && !isset($params['placeholder'])) {
+        $processedImgTag = '';
+
+        foreach ($imagesData as $image) {
+            $processedImgTag .= $this->getHtmlImageRender($image, $params);
+        }
+
+        if (isset($params['container'])) {
+            $containerAttrs = $this->concatHtmlAttrs($params['container_attrs'] ?? []);
+
+            $tag = $params['container'] ?? "div";
+
+            return '<'.$tag.' '.$containerAttrs.'>'.$processedImgTag.'</'.$tag.'>';
+        }
+
+        return $processedImgTag;
+    }
+
+    private function getHtmlImageRender(array $image, array $params): string
+    {
+        $sources = $image['sources'];
+        $data = $image['data'];
+        $render = '';
+        if (empty($sources) && !isset($params['placeholder'])) {
             return '';
         }
 
-        if (empty($images)) {
-            $images[] = [
+        if (empty($sources)) {
+            $sources[] = [
                 'url' => $params['placeholder'],
                 'breakpoint' => 'default'
             ];
         }
 
-        $processedImgTag = '';
+        foreach ($sources as $source) {
+            if ($source['breakpoint'] === "default" || count($sources) <= 1) {
+                $params['alt'] = $params['alt'] ?? $data['title'] ?? ConfigQuery::read("store_name");
 
-        foreach ($images as $image) {
-            if ($image['breakpoint'] === "default" || count($images) <= 1) {
-                $params['alt'] = $params['alt'] ?? $i18n['title'] ?? ConfigQuery::read("store_name");
-
-                $processedImgTag .= $this->createImgTag($image, $params);
+                $render .= $this->createImgTag($source, $params);
             } else {
-                $processedImgTag .= $this->createSourceTag($image);
+                $render .= $this->createSourceTag($source);
             }
         }
-
-        if ($this->needsWrapper($params, $images)) {
+        if ($this->needsWrapper($params, $sources)) {
             $wrapperAttrs = $this->concatHtmlAttrs($params['wrapper_attrs'] ?? []);
 
             $tag = $params['wrapper'] ?? "picture";
 
             $caption = isset($params['caption']) ? '<figcaption>'.$params['caption'].'</figcaption>' : '';
 
-            return '<'.$tag.' '.$wrapperAttrs.'>'.$processedImgTag.$caption.'</'.$tag.'>';
+            return '<'.$tag.' '.$wrapperAttrs.'>'.$render.$caption.'</'.$tag.'>';
         }
 
-        return $processedImgTag;
+        return $render;
     }
+
+
+
+
+
 
     private function concatHtmlAttrs(?array $htmlAttrs): string
     {
@@ -104,8 +125,8 @@ class ImagePluginService
         return '<source srcset="'.$image['url'].'" media="(min-width:'.$image['breakpoint'].')"/>';
     }
 
-    private function needsWrapper(array $params, array $images): bool
+    private function needsWrapper(array $params, array $sources): bool
     {
-        return (isset($params['wrapper']) && $params['wrapper']) || count($images) > 1;
+        return (isset($params['wrapper']) && $params['wrapper']) || count($sources) > 1;
     }
 }
