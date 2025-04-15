@@ -294,7 +294,7 @@ class ImageService
 
         if (null !== $imageId) {
             $query
-            ->filterById($identifier);
+            ->filterById($imageId);
         } else {
             $query
                 ->useLibraryItemImageQuery()
@@ -452,7 +452,7 @@ class ImageService
     public function getImages(array $params): array
     {
         if ($params['source_type'] === self::LIBRARY || $params['source_type'] === self::PAGE) {
-            $imageModel = $this->getImageModel($params['source_id'], $params['source_type'], $params['img_id'] ?? null);
+            $imageModel = $this->getImageModel($params['source_id'] ?? null, $params['source_type'], $params['img_id'] ?? null);
 
             $imagesData = $imageModel ? $this->getLibraryImageData($imageModel) : [];
         } else {
