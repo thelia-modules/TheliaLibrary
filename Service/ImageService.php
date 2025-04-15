@@ -19,10 +19,12 @@ use Imagine\Image\ImageInterface;
 use Imagine\Image\Palette\RGB;
 use Imagine\Image\Point;
 use Imagine\Imagick\Imagine as ImagickImagine;
+use Liip\ImagineBundle\Imagine\Cache\CacheManager;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Thelia\Model\ConfigQuery;
 use Thelia\Model\Lang;
+use Thelia\Model\ProductImageQuery;
 use TheliaLibrary\Model\LibraryImage;
 use TheliaLibrary\Model\LibraryImageQuery;
 use TheliaLibrary\TheliaLibrary;
@@ -30,8 +32,10 @@ use TheliaLibrary\TheliaLibrary;
 class ImageService
 {
     public const MAX_ALLOWED_SIZE_FACTOR = 2;
+    public const LIBRARY = 'library';
+    public const PAGE = 'page';
 
-    public function __construct(private RequestStack $requestStack)
+    public function __construct(private RequestStack $requestStack, private readonly CacheManager $cacheManager)
     {
     }
 
@@ -284,16 +288,32 @@ class ImageService
         return $fileName;
     }
 
+    public function getImageModel($identifier, $type = "library", $imageId = null)
+    {
+        $query = LibraryImageQuery::create();
+
+        if (null !== $imageId) {
+            $query
+            ->filterById($identifier);
+        } else {
+            $query
+                ->useLibraryItemImageQuery()
+                ->filterByItemType($type)
+                ->filterByItemId($identifier)
+                ->endUse();
+        }
+
+        return $query->find();
+    }
+
+
     public function openImage($identifier)
     {
-        $imageModel = LibraryImageQuery::create()
-            ->filterById($identifier)
-            ->findOne();
+        $imageModel = LibraryImageQuery::create()->filterById($identifier)->findOne();
 
         if (null === $imageModel) {
             throw new HttpException(404, 'Image not found');
         }
-
         $fileName = $this->getImageFileName($imageModel);
 
         return $this->getImagineInstance()->open(TheliaLibrary::getImageDirectory().$fileName);
@@ -321,5 +341,124 @@ class ImageService
     public function getMaxSize(ImageInterface $image)
     {
         return new Box($image->getSize()->getWidth() * 2, $image->getSize()->getHeight() * 2);
+    }
+
+    public function getImageDataWithType(array $params): array
+    {
+        $sourceType = $params['source_type'];
+        $sourceId = $params['source_id'] ?? null;
+        $imageId = $params['img_id'] ?? null;
+        $position = $params['position'] ?? null;
+        $visible = $params['visible'] ?? 1;
+
+        /** @var ProductImageQuery $query */
+        $query = $this->createSearchQuery($sourceType, $sourceId, $imageId);
+
+        if (null !== $position) {
+            $query->filterByPosition($position);
+        }
+        if (1 === $visible) {
+            $query->filterByVisible($visible);
+        }
+        if (isset($params['limit'])) {
+            $query->limit($params['limit']);
+        }
+        if (isset($params['offset'])) {
+            $query->offset($params['offset']);
+        }
+
+        $locale = $this->requestStack?->getCurrentRequest()?->getSession()?->getLang()->getLocale();
+
+        $query->orderByPosition();
+        $images = [];
+        foreach ($query as $image) {
+            $image->setlocale($locale);
+            $images[] = [
+                'path' => $image?->getFile() ? '/'.$sourceType.'/'.$image?->getFile() : '',
+                'title' => $image?->getTitle(),
+                'description' => $image?->getDescription(),
+                'chapo' => $image?->getChapo(),
+                'postscriptum' => $image?->getPostscriptum(),
+                'id' => $image?->getId()
+            ];
+        }
+
+        return $images;
+    }
+
+    private function createSearchQuery($source, $sourceId, $imageId = null)
+    {
+        $queryClass = 'Thelia\\Model\\'.ucfirst($source).'ImageQuery';
+
+        $filterMethod = sprintf('filterBy%sId', $imageId ? '' : $source);
+        // xxxImageQuery::create()
+        $method = new \ReflectionMethod($queryClass, 'create');
+        $search = $method->invoke(null); // Static !
+
+        // $query->filterByXXX(id)
+        $method = new \ReflectionMethod($queryClass, $filterMethod);
+        $method->invoke($search, $imageId ?? $sourceId);
+
+        return $search;
+    }
+
+    public function getProcessedImages(array $imagesData, array | string  $filters): array
+    {
+        $processedImages = [];
+        if (!is_array($filters)) {
+            $filters = ['default' => $filters];
+        }
+
+        foreach ($imagesData as $data) {
+            $sources = [];
+            if ($data['path']) {
+                foreach ($filters as $breakpoint => $filter) {
+                    $url = $this->cacheManager->getBrowserPath(
+                        $data['path'],
+                        $filter
+                    );
+                    $sources[] = [
+                        'breakpoint' => $breakpoint,
+                        'url' => $url
+                    ];
+                }
+            }
+            $processedImages[] = [
+                'sources' => $sources,
+                'data' => $data,
+            ];
+        }
+
+        return $processedImages;
+    }
+
+    protected function getLibraryImageData($imageQuery)
+    {
+        $locale = $this->requestStack?->getCurrentRequest()?->getSession()?->getLang()->getLocale();
+
+        $images = [];
+        foreach ($imageQuery as $image) {
+            $image->setlocale($locale);
+            $images[] = [
+                'path' => $this->getImageFileName($image),
+                'title' => $image->getTitle(),
+                'id' => $image->getTitle()
+            ];
+        }
+
+        return $images;
+    }
+
+    public function getImages(array $params): array
+    {
+        if ($params['source_type'] === self::LIBRARY || $params['source_type'] === self::PAGE) {
+            $imageModel = $this->getImageModel($params['source_id'], $params['source_type'], $params['img_id'] ?? null);
+
+            $imagesData = $imageModel ? $this->getLibraryImageData($imageModel) : [];
+        } else {
+            $imagesData = $this->getImageDataWithType($params);
+        }
+        return $this->getProcessedImages($imagesData, $params['filters']);
+
     }
 }

@@ -12,18 +12,29 @@
 
 namespace TheliaLibrary;
 
+use phpDocumentor\Reflection\Types\Self_;
 use Propel\Runtime\Connection\ConnectionInterface;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ServicesConfigurator;
+use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use Thelia\Install\Database;
 use Thelia\Module\BaseModule;
 
 class TheliaLibrary extends BaseModule
 {
+
+    public function __construct()
+    {
+    }
+
     /** @var string */
     public const DOMAIN_NAME = 'thelialibrary';
 
     public const DEFAULT_IMAGE_DIRECTORY = THELIA_LOCAL_DIR.'library/images/';
+
+    public const IMAGINE_CONFIG_FILE = THELIA_ROOT.'config/packages/liip_imagine_thelia.yaml';
 
     public function preActivation(ConnectionInterface $con = null): bool
     {
@@ -33,6 +44,11 @@ class TheliaLibrary extends BaseModule
             $database->insertSql(null, [__DIR__.'/Config/TheliaMain.sql']);
 
             $this->setConfigValue('is_initialized', true);
+        }
+
+        $fs = new Filesystem();
+        if (!$fs->exists(self::IMAGINE_CONFIG_FILE)) {
+            $fs->copy(THELIA_MODULE_DIR.'TheliaLibrary/Config/liip_imagine_thelia.yaml.example', self::IMAGINE_CONFIG_FILE);
         }
 
         return true;
@@ -61,6 +77,11 @@ class TheliaLibrary extends BaseModule
                     $database->insertSql(null, [$file->getPathname()]);
                 }
             }
+        }
+
+        $fs = new Filesystem();
+        if (!$fs->exists(self::IMAGINE_CONFIG_FILE)) {
+            $fs->copy(THELIA_MODULE_DIR.'TheliaLibrary/Config/liip_imagine_thelia.yaml.example', self::IMAGINE_CONFIG_FILE);
         }
     }
 
