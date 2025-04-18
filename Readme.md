@@ -46,7 +46,7 @@ Here’s the params :
 Here’s the exemple :
 
 ```php
-{getImage
+{getImages
   source_type="content"
   source_id=2
   filters=[
