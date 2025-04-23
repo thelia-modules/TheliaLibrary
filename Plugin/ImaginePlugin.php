@@ -3,6 +3,7 @@
 namespace TheliaLibrary\Plugin;
 
 use Liip\ImagineBundle\Imagine\Cache\CacheManager;
+use Smarty_Internal_Template;
 use Thelia\Model\ConfigQuery;
 use TheliaLibrary\Service\ImagePluginService;
 use TheliaLibrary\Service\ImageService;
@@ -45,9 +46,10 @@ class ImaginePlugin extends AbstractSmartyPlugin
         );
     }
 
-    public function getImagesData(array $params): array
+    public function getImagesData(array $params, Smarty_Internal_Template $template): void
     {
-        return $this->imageService->getImages($params);
+        $images =  $this->imageService->getImages($params);
+        $template->assign('images', $images);
     }
 
     public function getImages(array $params): string
