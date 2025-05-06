@@ -38,16 +38,6 @@ class ImagePluginService
         $sources = $image['sources'];
         $data = $image['data'];
         $render = '';
-        if (empty($sources) && !isset($params['placeholder'])) {
-            return '';
-        }
-
-        if (empty($sources)) {
-            $sources[] = [
-                'url' => $params['placeholder'],
-                'breakpoint' => 'default'
-            ];
-        }
 
         foreach ($sources as $source) {
             if ($source['breakpoint'] === "default" || count($sources) <= 1) {
@@ -70,11 +60,6 @@ class ImagePluginService
 
         return $render;
     }
-
-
-
-
-
 
     private function concatHtmlAttrs(?array $htmlAttrs): string
     {
