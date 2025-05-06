@@ -45,7 +45,7 @@ class ImageService
         $region = 'full',
         $size = 'max',
         $rotation = 0,
-        $quality = 'default'
+        $quality = 'default',
     ) {
         return "/image-library/$identifier/$region/$size/$rotation/$quality.$format";
     }
@@ -56,7 +56,7 @@ class ImageService
         $size,
         $rotation,
         $quality,
-        $format
+        $format,
     ) {
         if (!\in_array(strtolower($format), ['jpg', 'jpeg', 'png', 'gif', 'jp2', 'webp'])) {
             throw new HttpException(400, 'Bad format value');
@@ -65,7 +65,7 @@ class ImageService
         $formattedImagePath = THELIA_WEB_DIR.'image-library'.DS.$identifier.DS.$region.DS.$size.DS.$rotation;
         if (!is_dir($formattedImagePath)) {
             if (!@mkdir($formattedImagePath, 0755, true)) {
-                throw new \RuntimeException(sprintf('Failed to create %s file in cache directory', $formattedImagePath));
+                throw new \RuntimeException(\sprintf('Failed to create %s file in cache directory', $formattedImagePath));
             }
         }
 
@@ -104,7 +104,7 @@ class ImageService
         }
 
         // If region start with pct: values are percent of size
-        $regionMode = strpos($region, 'pct:') === false ? 'value' : 'percentage';
+        $regionMode = !str_contains($region, 'pct:') ? 'value' : 'percentage';
         $values = explode(',', str_replace('pct:', '', $region));
 
         if (\count($values) !== 4) {
@@ -137,9 +137,9 @@ class ImageService
 
     public function applySize(ImageInterface $image, $size)
     {
-        $upscaleMode = false !== strpos($size, '^');
-        $keepAspectRatio = false !== strpos($size, '!');
-        $borders = false !== strpos($size, '*');
+        $upscaleMode = str_contains($size, '^');
+        $keepAspectRatio = str_contains($size, '!');
+        $borders = str_contains($size, '*');
         $size = str_replace('^', '', $size);
         $size = str_replace('!', '', $size);
         $size = str_replace('*', '', $size);
@@ -155,7 +155,7 @@ class ImageService
         $width = $image->getSize()->getWidth();
         $height = $image->getSize()->getHeight();
 
-        if (false !== strpos($size, 'pct:')) {
+        if (str_contains($size, 'pct:')) {
             $values = explode(':', $size);
             if (!isset($values[1])) {
                 throw new HttpException(400, 'Bad size values');
@@ -221,7 +221,7 @@ class ImageService
 
     public function applyRotation(ImageInterface $image, $rotation, $format)
     {
-        if (false !== strpos($rotation, '!')) {
+        if (str_contains($rotation, '!')) {
             $image = $image->flipHorizontally();
         }
 
@@ -266,7 +266,7 @@ class ImageService
     }
 
     public function getImageFileName(
-        LibraryImage $image = null
+        ?LibraryImage $image = null,
     ) {
         if (null == $image) {
             return null;
@@ -288,7 +288,7 @@ class ImageService
         return $fileName;
     }
 
-    public function getImageModel($identifier, $type = "library", $imageId = null)
+    public function getImageModel($identifier, $type = 'library', $imageId = null)
     {
         $query = LibraryImageQuery::create();
 
@@ -305,7 +305,6 @@ class ImageService
 
         return $query->find();
     }
-
 
     public function openImage($identifier)
     {
@@ -379,7 +378,7 @@ class ImageService
                 'description' => $image?->getDescription(),
                 'chapo' => $image?->getChapo(),
                 'postscriptum' => $image?->getPostscriptum(),
-                'id' => $image?->getId()
+                'id' => $image?->getId(),
             ];
         }
 
@@ -390,7 +389,7 @@ class ImageService
     {
         $queryClass = 'Thelia\\Model\\'.ucfirst($source).'ImageQuery';
 
-        $filterMethod = sprintf('filterBy%sId', $imageId ? '' : $source);
+        $filterMethod = \sprintf('filterBy%sId', $imageId ? '' : $source);
         // xxxImageQuery::create()
         $method = new \ReflectionMethod($queryClass, 'create');
         $search = $method->invoke(null); // Static !
@@ -402,10 +401,10 @@ class ImageService
         return $search;
     }
 
-    public function getProcessedImages(array $imagesData, array | string  $filters): array
+    public function getProcessedImages(array $imagesData, array|string $filters, ?string $placeholder): array
     {
         $processedImages = [];
-        if (!is_array($filters)) {
+        if (!\is_array($filters)) {
             $filters = ['default' => $filters];
         }
 
@@ -419,7 +418,7 @@ class ImageService
                     );
                     $sources[] = [
                         'breakpoint' => $breakpoint,
-                        'url' => $url
+                        'url' => $url,
                     ];
                 }
             }
@@ -429,7 +428,7 @@ class ImageService
             ];
         }
 
-        return $processedImages;
+        return !empty($processedImages) ? $processedImages : $this->getFallbackImg($placeholder);
     }
 
     protected function getLibraryImageData($imageQuery)
@@ -437,12 +436,13 @@ class ImageService
         $locale = $this->requestStack?->getCurrentRequest()?->getSession()?->getLang()->getLocale();
 
         $images = [];
+
         foreach ($imageQuery as $image) {
             $image->setlocale($locale);
             $images[] = [
                 'path' => $this->getImageFileName($image),
                 'title' => $image->getTitle(),
-                'id' => $image->getTitle()
+                'id' => $image->getTitle(),
             ];
         }
 
@@ -453,12 +453,27 @@ class ImageService
     {
         if ($params['source_type'] === self::LIBRARY || $params['source_type'] === self::PAGE) {
             $imageModel = $this->getImageModel($params['source_id'] ?? null, $params['source_type'], $params['img_id'] ?? null);
-
             $imagesData = $imageModel ? $this->getLibraryImageData($imageModel) : [];
         } else {
             $imagesData = $this->getImageDataWithType($params);
         }
-        return $this->getProcessedImages($imagesData, $params['filters']);
 
+        return $this->getProcessedImages($imagesData, $params['filters'], $params['placeholder'] ?? null);
+    }
+
+
+    private function getFallbackImg(?string $placeholder): array
+    {
+        return [
+            [
+               'sources' => [
+                   [
+                       'breakpoint' => 'default',
+                       'url' => $placeholder ?? ''
+                   ]
+               ],
+               'data' => []
+            ]
+           ];
     }
 }
