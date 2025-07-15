@@ -12,6 +12,7 @@
 
 namespace TheliaLibrary\Loop;
 
+use Propel\Runtime\ActiveQuery\ModelCriteria;
 use Thelia\Action\Image;
 use Thelia\Core\Template\Element\BaseI18nLoop;
 use Thelia\Core\Template\Element\LoopResult;
@@ -39,7 +40,7 @@ use TheliaLibrary\Service\LibraryImageService;
  */
 class LibraryImage extends BaseI18nLoop implements PropelSearchLoopInterface
 {
-    protected function getArgDefinitions()
+    protected function getArgDefinitions(): ArgumentCollection
     {
         return new ArgumentCollection(
             Argument::createIntTypeArgument('id'),
@@ -65,7 +66,7 @@ class LibraryImage extends BaseI18nLoop implements PropelSearchLoopInterface
         );
     }
 
-    public function buildModelCriteria()
+    public function buildModelCriteria(): ModelCriteria
     {
         $query = LibraryImageQuery::create();
 
@@ -105,7 +106,7 @@ class LibraryImage extends BaseI18nLoop implements PropelSearchLoopInterface
         return $query;
     }
 
-    public function parseResults(LoopResult $loopResult)
+    public function parseResults(LoopResult $loopResult): LoopResult
     {
         /** @var LibraryImageModel $image */
         foreach ($loopResult->getResultDataCollection() as $image) {
