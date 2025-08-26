@@ -19,7 +19,7 @@ use OpenApi\Model\Api\ModelFactory;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
-use Thelia\TaxEngine\TaxEngine;
+use Thelia\Domain\Taxation\TaxEngine\TaxEngine;
 use TheliaLibrary\Model\LibraryImageTagQuery;
 use TheliaLibrary\Model\LibraryTagQuery;
 use TheliaLibrary\Service\LibraryImageService;
