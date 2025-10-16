@@ -14,6 +14,7 @@ namespace TheliaLibrary;
 
 use phpDocumentor\Reflection\Types\Self_;
 use Propel\Runtime\Connection\ConnectionInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ServicesConfigurator;
@@ -24,8 +25,9 @@ use Thelia\Module\BaseModule;
 
 class TheliaLibrary extends BaseModule
 {
+    public function __construct(
 
-    public function __construct()
+    )
     {
     }
 
@@ -47,6 +49,9 @@ class TheliaLibrary extends BaseModule
         }
 
         $fs = new Filesystem();
+        if (!$fs->exists(THELIA_ROOT.'local/media/images')){
+            $fs->mkdir(THELIA_ROOT.'local/media/images', 0755);
+        }
         if (!$fs->exists(self::IMAGINE_CONFIG_FILE)) {
             $fs->copy(THELIA_MODULE_DIR.'TheliaLibrary/Config/liip_imagine_thelia.yaml.example', self::IMAGINE_CONFIG_FILE);
         }
