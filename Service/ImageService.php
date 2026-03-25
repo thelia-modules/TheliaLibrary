@@ -20,6 +20,7 @@ use Imagine\Image\Palette\RGB;
 use Imagine\Image\Point;
 use Imagine\Imagick\Imagine as ImagickImagine;
 use Liip\ImagineBundle\Imagine\Cache\CacheManager;
+use Propel\Runtime\ActiveQuery\ModelCriteria;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Thelia\Model\ConfigQuery;
@@ -28,6 +29,7 @@ use Thelia\Model\ProductImageQuery;
 use TheliaLibrary\Model\LibraryImage;
 use TheliaLibrary\Model\LibraryImageQuery;
 use TheliaLibrary\TheliaLibrary;
+use TheliaMain\PropelResolver;
 
 class ImageService
 {
@@ -385,9 +387,19 @@ class ImageService
         return $images;
     }
 
+    private function camelToSnake(string $string): string {
+        return strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $string));
+    }
+
     private function createSearchQuery($source, $sourceId, $imageId = null)
     {
         $queryClass = 'Thelia\\Model\\'.ucfirst($source).'ImageQuery';
+        if (!class_exists($queryClass)) {
+            $tableMapClass = PropelResolver::getTableMapByTableName($this->camelToSnake($source).'_image');
+            $tableMap = new $tableMapClass();
+            /** @var ModelCriteria $queryClass */
+            $queryClass = $tableMap->getClassName().'Query';
+        }
 
         $filterMethod = \sprintf('filterBy%sId', $imageId ? '' : $source);
         // xxxImageQuery::create()
