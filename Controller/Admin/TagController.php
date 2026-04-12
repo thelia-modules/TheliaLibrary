@@ -16,20 +16,17 @@ use OpenApi\Annotations as OA;
 use OpenApi\Controller\Admin\BaseAdminOpenApiController;
 use OpenApi\Model\Api\ModelFactory;
 use OpenApi\Service\OpenApiService;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Thelia\Core\HttpFoundation\JsonResponse;
 use Thelia\Core\HttpFoundation\Request;
 use TheliaLibrary\Model\Base\LibraryTagQuery;
 use TheliaLibrary\Model\LibraryTag;
 use TheliaLibrary\Service\LibraryTagService;
 
-/**
- * @Route("/open_api/library/tag", name="library_tag")
- */
+#[Route("/open_api/library/tag", name: "library_tag")]
 class TagController extends BaseAdminOpenApiController
 {
     /**
-     * @Route("", name="_view", methods="GET")
      * @OA\Get(
      *     path="/library/tag",
      *     tags={"Library tag"},
@@ -46,6 +43,7 @@ class TagController extends BaseAdminOpenApiController
      *     )
      * )
      */
+    #[Route("", name: "_view", methods: ["GET"])]
     public function getTags(Request $request, ModelFactory $modelFactory)
     {
         $query = LibraryTagQuery::create();
@@ -63,8 +61,6 @@ class TagController extends BaseAdminOpenApiController
     }
 
     /**
-     * @Route("", name="_create", methods="POST")
-     *
      * @OA\Post(
      *     path="/library/tag",
      *     tags={ "Library tag"},
@@ -95,6 +91,7 @@ class TagController extends BaseAdminOpenApiController
      *     )
      * )
      */
+    #[Route("", name: "_create", methods: ["POST"])]
     public function createTag(
         Request $request,
         ModelFactory $modelFactory,
@@ -112,7 +109,6 @@ class TagController extends BaseAdminOpenApiController
     }
 
     /**
-     * @Route("/{tagId}", name="_update", methods="POST", requirements={"tagId"="\d+"})
      * @OA\Post(
      *     path="/library/tag/{tagId}",
      *     tags={ "Library tag"},
@@ -151,6 +147,7 @@ class TagController extends BaseAdminOpenApiController
      *     )
      * )
      */
+    #[Route("/{tagId}", name: "_update", methods: ["POST"], requirements: ["tagId" => "\d+"])]
     public function updateTag(
         $tagId,
         Request $request,
@@ -169,8 +166,6 @@ class TagController extends BaseAdminOpenApiController
     }
 
     /**
-     * @Route("/{tagId}", name="_delete", methods="DELETE", requirements={"tagId"="\d+"})
-     *
      * @OA\Delete(
      *     path="/library/tag/{tagId}",
      *     tags={ "Library tag"},
@@ -194,6 +189,7 @@ class TagController extends BaseAdminOpenApiController
      *     )
      * )
      */
+    #[Route("/{tagId}", name: "_delete", methods: ["DELETE"], requirements: ["tagId" => "\d+"])]
     public function deleteTag(
         $tagId,
         LibraryTagService $libraryTagService

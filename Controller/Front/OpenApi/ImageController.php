@@ -17,20 +17,16 @@ use OpenApi\Controller\Front\BaseFrontOpenApiController;
 use OpenApi\Model\Api\ModelFactory;
 use OpenApi\Service\OpenApiService;
 use Propel\Runtime\ActiveQuery\Criteria;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Thelia\Core\HttpFoundation\Request;
 use TheliaLibrary\Model\LibraryImage;
 use TheliaLibrary\Model\LibraryImageQuery;
 use TheliaLibrary\Model\LibraryItemImageQuery;
 
-/**
- * @Route("/open_api/library/image", name="front_library_image")
- */
+#[Route("/open_api/library/image", name: "front_library_image")]
 class ImageController extends BaseFrontOpenApiController
 {
     /**
-     * @Route("", name="_get", methods="GET")
-     *
      * @OA\Get(
      *     path="/library/image",
      *     tags={"Library image"},
@@ -132,6 +128,7 @@ class ImageController extends BaseFrontOpenApiController
      *     )
      * )
      */
+    #[Route("", name: "_get", methods: ["GET"])]
     public function getImage(
         Request $request,
         ModelFactory $modelFactory

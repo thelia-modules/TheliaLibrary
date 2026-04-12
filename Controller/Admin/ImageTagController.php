@@ -17,20 +17,16 @@ use OpenApi\Controller\Admin\BaseAdminOpenApiController;
 use OpenApi\Model\Api\ModelFactory;
 use OpenApi\Service\OpenApiService;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Thelia\Core\HttpFoundation\Request;
 use TheliaLibrary\Model\LibraryImageTag;
 use TheliaLibrary\Model\LibraryTagQuery;
 use TheliaLibrary\Service\LibraryImageTagService;
 
-/**
- * @Route("/open_api/library/image_tag", name="library_image_tag")
- */
+#[Route("/open_api/library/image_tag", name: "library_image_tag")]
 class ImageTagController extends BaseAdminOpenApiController
 {
     /**
-     * @Route("", name="_associate", methods="POST")
-     *
      * @OA\Post(
      *     path="/library/image_tag",
      *     tags={ "Library tag"},
@@ -60,6 +56,7 @@ class ImageTagController extends BaseAdminOpenApiController
      *     )
      * )
      */
+    #[Route("", name: "_associate", methods: ["POST"])]
     public function createAssociation(
         Request $request,
         ModelFactory $modelFactory,
@@ -82,8 +79,6 @@ class ImageTagController extends BaseAdminOpenApiController
     }
 
     /**
-     * @Route("/{imageTagId}", name="_delete_association", methods="DELETE", requirements={"imageTagId"="\d+"})
-     *
      * @OA\Delete(
      *     path="/library/image_tag/{imageTagId}",
      *     tags={ "Library tag"},
@@ -107,6 +102,7 @@ class ImageTagController extends BaseAdminOpenApiController
      *     )
      * )
      */
+    #[Route("/{imageTagId}", name: "_delete_association", methods: ["DELETE"], requirements: ["imageTagId" => "\d+"])]
     public function deleteAssociation(
         $imageTagId,
         LibraryImageTagService $libraryImageTagService

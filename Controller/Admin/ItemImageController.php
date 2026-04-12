@@ -17,19 +17,15 @@ use OpenApi\Controller\Admin\BaseAdminOpenApiController;
 use OpenApi\Model\Api\ModelFactory;
 use OpenApi\Service\OpenApiService;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Thelia\Core\HttpFoundation\Request;
 use TheliaLibrary\Model\Api\LibraryItemImage;
 use TheliaLibrary\Service\LibraryItemImageService;
 
-/**
- * @Route("/open_api/library/item_image", name="library_item_image")
- */
+#[Route("/open_api/library/item_image", name: "library_item_image")]
 class ItemImageController extends BaseAdminOpenApiController
 {
     /**
-     * @Route("", name="_associate", methods="POST")
-     *
      * @OA\Post(
      *     path="/library/item_image",
      *     tags={ "Library image"},
@@ -71,6 +67,7 @@ class ItemImageController extends BaseAdminOpenApiController
      *     )
      * )
      */
+    #[Route("", name: "_associate", methods: ["POST"])]
     public function createAssociation(
         Request $request,
         ModelFactory $modelFactory,
@@ -94,8 +91,6 @@ class ItemImageController extends BaseAdminOpenApiController
     }
 
     /**
-     * @Route("/{itemImageId}", name="_update_association", methods="PATCH", requirements={"itemImageId"="\d+"})
-     *
      * @OA\Patch(
      *     path="/library/item_image/{itemImageId}",
      *     tags={ "Library image"},
@@ -142,6 +137,7 @@ class ItemImageController extends BaseAdminOpenApiController
      *     )
      * )
      */
+    #[Route("/{itemImageId}", name: "_update_association", methods: ["PATCH"], requirements: ["itemImageId" => "\d+"])]
     public function updateAssociation(
         $itemImageId,
         Request $request,
@@ -162,8 +158,6 @@ class ItemImageController extends BaseAdminOpenApiController
     }
 
     /**
-     * @Route("/{itemImageId}", name="_delete_association", methods="DELETE", requirements={"itemImageId"="\d+"})
-     *
      * @OA\Delete(
      *     path="/library/item_image/{itemImageId}",
      *     tags={ "Library image"},
@@ -187,6 +181,7 @@ class ItemImageController extends BaseAdminOpenApiController
      *     )
      * )
      */
+    #[Route("/{itemImageId}", name: "_delete_association", methods: ["DELETE"], requirements: ["itemImageId" => "\d+"])]
     public function deleteAssociation(
         $itemImageId,
         LibraryItemImageService $libraryItemImageService

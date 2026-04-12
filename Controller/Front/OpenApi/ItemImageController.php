@@ -16,19 +16,15 @@ use OpenApi\Annotations as OA;
 use OpenApi\Controller\Front\BaseFrontOpenApiController;
 use OpenApi\Model\Api\ModelFactory;
 use OpenApi\Service\OpenApiService;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Thelia\Core\HttpFoundation\Request;
 use TheliaLibrary\Model\LibraryItemImage;
 use TheliaLibrary\Model\LibraryItemImageQuery;
 
-/**
- * @Route("/open_api/library/item_image", name="front_library_item_image")
- */
+#[Route("/open_api/library/item_image", name: "front_library_item_image")]
 class ItemImageController extends BaseFrontOpenApiController
 {
     /**
-     * @Route("", name="_get", methods="GET")
-     *
      * @OA\Get(
      *     path="/library/item_image",
      *     tags={"Library image"},
@@ -80,6 +76,7 @@ class ItemImageController extends BaseFrontOpenApiController
      *     )
      * )
      */
+    #[Route("", name: "_get", methods: ["GET"])]
     public function getItemImage(
         Request $request,
         ModelFactory $modelFactory
@@ -123,8 +120,6 @@ class ItemImageController extends BaseFrontOpenApiController
     }
 
     /**
-     * @Route("/types", name="_type_list", methods="GET")
-     *
      * @OA\Get(
      *     path="/library/item_image/types",
      *     tags={"Library image"},
@@ -155,6 +150,7 @@ class ItemImageController extends BaseFrontOpenApiController
      *     )
      * )
      */
+    #[Route("/types", name: "_type_list", methods: ["GET"])]
     public function getItemTypes(
         Request $request
     ) {

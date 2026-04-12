@@ -13,20 +13,16 @@
 namespace TheliaLibrary\Controller\Front;
 
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Thelia\Controller\Front\BaseFrontController;
 use Thelia\Core\HttpFoundation\Response;
 use Thelia\Tools\URL;
 use TheliaLibrary\Service\ImageService;
 
-/**
- * @Route("/image-library", name="image_library_")
- */
+#[Route("/image-library", name: "image_library_")]
 class ImageController extends BaseFrontController
 {
-    /**
-     * @Route("/{identifier}/{region}/{size}/{rotation}/{quality}.{format}", name="view")
-     */
+    #[Route("/{identifier}/{region}/{size}/{rotation}/{quality}.{format}", name: "view")]
     public function getImage(
         $identifier,
         $region,
@@ -41,9 +37,7 @@ class ImageController extends BaseFrontController
         return new BinaryFileResponse($imagePath);
     }
 
-    /**
-     * @Route("/{identifier}/info.json", name="info")
-     */
+    #[Route("/{identifier}/info.json", name: "info")]
     public function getImageInformation(
         $identifier,
         ImageService $imageService

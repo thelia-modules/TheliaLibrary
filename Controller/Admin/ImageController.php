@@ -17,18 +17,14 @@ use OpenApi\Controller\Admin\BaseAdminOpenApiController;
 use OpenApi\Model\Api\ModelFactory;
 use OpenApi\Service\OpenApiService;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Thelia\Core\HttpFoundation\Request;
 use TheliaLibrary\Service\LibraryImageService;
 
-/**
- * @Route("/open_api/library/image", name="library_image")
- */
+#[Route("/open_api/library/image", name: "library_image")]
 class ImageController extends BaseAdminOpenApiController
 {
     /**
-     * @Route("", name="_create", methods="POST")
-     *
      * @OA\Post(
      *     path="/library/image",
      *     tags={ "Library image"},
@@ -66,6 +62,7 @@ class ImageController extends BaseAdminOpenApiController
      *     )
      * )
      */
+    #[Route("", name: "_create", methods: ["POST"])]
     public function createImage(
         Request $request,
         ModelFactory $modelFactory,
@@ -85,8 +82,6 @@ class ImageController extends BaseAdminOpenApiController
     // Method POST because patch doesn't work with multipart/form-data
 
     /**
-     * @Route("/{imageId}", name="_update", methods="POST", requirements={"imageId"="\d+"})
-     *
      * @OA\Post(
      *     path="/library/image/{imageId}",
      *     tags={ "Library image"},
@@ -132,6 +127,7 @@ class ImageController extends BaseAdminOpenApiController
      *     )
      * )
      */
+    #[Route("/{imageId}", name: "_update", methods: ["POST"], requirements: ["imageId" => "\d+"])]
     public function updateImage(
         $imageId,
         Request $request,
@@ -150,8 +146,6 @@ class ImageController extends BaseAdminOpenApiController
     }
 
     /**
-     * @Route("/{imageId}", name="_delete", methods="DELETE", requirements={"imageId"="\d+"})
-     *
      * @OA\Delete(
      *     path="/library/image/{imageId}",
      *     tags={ "Library image"},
@@ -175,6 +169,7 @@ class ImageController extends BaseAdminOpenApiController
      *     )
      * )
      */
+    #[Route("/{imageId}", name: "_delete", methods: ["DELETE"], requirements: ["imageId" => "\d+"])]
     public function deleteImage(
         $imageId,
         LibraryImageService $libraryImageService

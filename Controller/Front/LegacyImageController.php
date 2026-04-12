@@ -15,7 +15,7 @@ namespace TheliaLibrary\Controller\Front;
 use Propel\Runtime\ActiveQuery\ModelCriteria;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpKernel\Exception\HttpException;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Thelia\Controller\Front\BaseFrontController;
 use Thelia\Core\HttpFoundation\Response;
 use Thelia\Model\ConfigQuery;
@@ -24,14 +24,10 @@ use Thelia\Tools\URL;
 use TheliaLibrary\Service\ImageService;
 use TheliaMain\PropelResolver;
 
-/**
- * @Route("/legacy-image-library", name="legacy_image_library_")
- */
+#[Route("/legacy-image-library", name: "legacy_image_library_")]
 class LegacyImageController extends BaseFrontController
 {
-    /**
-     * @Route("/{itemType}_image_{imageId}/{region}/{size}/{rotation}/{quality}.{format}", name="view")
-     */
+    #[Route("/{itemType}_image_{imageId}/{region}/{size}/{rotation}/{quality}.{format}", name: "view")]
     public function getImage(
         $itemType,
         $imageId,
@@ -71,9 +67,7 @@ class LegacyImageController extends BaseFrontController
         return new BinaryFileResponse($formattedImagePath);
     }
 
-    /**
-     * @Route("/{itemType}_image_{imageId}/info.json", name="info")
-     */
+    #[Route("/{itemType}_image_{imageId}/info.json", name: "info")]
     public function getImageInformation(
         $itemType,
         $imageId,
