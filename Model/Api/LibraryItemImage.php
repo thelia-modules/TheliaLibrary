@@ -206,7 +206,7 @@ class LibraryItemImage extends BaseApiModel
         return $this;
     }
 
-    protected function getTheliaModel($propelModelName = null)
+    protected function getTheliaModel($propelModelName = null): mixed
     {
         return parent::getTheliaModel(\TheliaLibrary\Model\LibraryItemImage::class);
     }

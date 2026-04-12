@@ -16,7 +16,7 @@ class ImaginePlugin extends AbstractSmartyPlugin
     {
     }
 
-    public function getPluginDescriptors()
+    public function getPluginDescriptors(): array
     {
         return [
             new SmartyPluginDescriptor("function", "imagine_filter", $this, "handleImagineFilter"),

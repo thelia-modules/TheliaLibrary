@@ -187,7 +187,7 @@ class LibraryImage extends BaseApiModel
         $this->tags = $tags;
     }
 
-    protected function getTheliaModel($propelModelName = null)
+    protected function getTheliaModel($propelModelName = null): mixed
     {
         return parent::getTheliaModel(\TheliaLibrary\Model\LibraryImage::class);
     }
