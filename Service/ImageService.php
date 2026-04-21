@@ -371,7 +371,7 @@ class ImageService
         $query->orderByPosition();
         $images = [];
         foreach ($query as $image) {
-            $image->setlocale($locale);
+            $image->setLocale($locale);
             $images[] = [
                 'path' => $image?->getFile() ? '/'.$sourceType.'/'.$image?->getFile() : '',
                 'title' => $image?->getTitle(),
@@ -438,7 +438,7 @@ class ImageService
         $images = [];
 
         foreach ($imageQuery as $image) {
-            $image->setlocale($locale);
+            $image->setLocale($locale);
             $images[] = [
                 'path' => $this->getImageFileName($image),
                 'title' => $image->getTitle(),

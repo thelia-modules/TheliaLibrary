@@ -14,6 +14,7 @@ namespace TheliaLibrary\Controller\Front;
 
 use Propel\Runtime\ActiveQuery\ModelCriteria;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Routing\Annotation\Route;
 use Thelia\Controller\Front\BaseFrontController;
@@ -29,6 +30,11 @@ use TheliaMain\PropelResolver;
  */
 class LegacyImageController extends BaseFrontController
 {
+    public function __construct(
+        private readonly RequestStack $requestStack,
+    ) {
+    }
+
     /**
      * @Route("/{itemType}_image_{imageId}/{region}/{size}/{rotation}/{quality}.{format}", name="view")
      */
@@ -130,6 +136,9 @@ class LegacyImageController extends BaseFrontController
         if (null === $image) {
             return new Response(null, 404);
         }
+
+        $locale = $this->requestStack->getCurrentRequest()?->getSession()->getLang()->getLocale();
+        $image->setLocale($locale);
 
         $baseSourceFilePath = ConfigQuery::read('images_library_path');
         if ($baseSourceFilePath === null) {

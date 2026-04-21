@@ -45,6 +45,13 @@ class ImageMigrateCommand extends ContainerAwareCommand
                 InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY,
                 'Only image of this item type will be migrated',
                 []
+            )
+            ->addOption(
+                'locale',
+                'l',
+                InputOption::VALUE_OPTIONAL,
+                'Locale to use for reading file names (defaults to shop default language)',
+                null
             );
     }
 
@@ -76,8 +83,13 @@ class ImageMigrateCommand extends ContainerAwareCommand
             $progressBar = new ProgressBar($output, \count($images));
             $progressBar->start();
 
+            $locale = $input->getOption('locale')
+                ?? LangQuery::create()->findOneByByDefault(1)?->getLocale()
+                ?? 'fr_FR';
+
             $itemIdGetter = 'get'.ucfirst($itemType).'Id';
             foreach ($images as $image) {
+                $image->setLocale($locale);
                 $tmpFilePath = '/tmp/image/'.$image->getFile();
                 $filesystem->copy($baseSourceFilePath.DS.$itemType.DS.$image->getFile(), $tmpFilePath);
                 $uploadedFile = new File(
