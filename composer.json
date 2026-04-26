@@ -5,10 +5,8 @@
   "type": "thelia-module",
   "require": {
     "thelia/installer": "~1.3",
-    "thelia/open-api-module": "dev-twig",
     "liip/imagine-bundle": "^2.9"
-  }
-  ,
+  },
   "require-dev": {
     "roave/security-advisories": "dev-latest"
   },

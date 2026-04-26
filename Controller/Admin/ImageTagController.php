@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the Thelia package.
  * http://www.thelia.net
@@ -12,103 +14,84 @@
 
 namespace TheliaLibrary\Controller\Admin;
 
-use OpenApi\Annotations as OA;
-use OpenApi\Controller\Admin\BaseAdminOpenApiController;
-use OpenApi\Model\Api\ModelFactory;
-use OpenApi\Service\OpenApiService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
+use Thelia\Controller\Admin\BaseAdminController;
 use Thelia\Core\HttpFoundation\Request;
-use TheliaLibrary\Model\LibraryImageTag;
+use Thelia\Model\Lang;
+use TheliaLibrary\Controller\Admin\Support\LegacyLibraryImageSerializer;
 use TheliaLibrary\Model\LibraryTagQuery;
 use TheliaLibrary\Service\LibraryImageTagService;
 
-#[Route("/open_api/library/image_tag", name: "library_image_tag")]
-class ImageTagController extends BaseAdminOpenApiController
+/**
+ * Backwards-compatibility shim for `/open_api/library/image_tag` endpoints.
+ *
+ * Canonical API: `/api/admin/library_image_tags` (AP 4.3).
+ */
+#[Route('/open_api/library/image_tag', name: 'thelialibrary_legacy_image_tag_admin')]
+final class ImageTagController extends BaseAdminController
 {
-    /**
-     * @OA\Post(
-     *     path="/library/image_tag",
-     *     tags={ "Library tag"},
-     *     summary="Associate a tag to an image",
-     *     @OA\RequestBody(
-     *          required=true,
-     *          @OA\JsonContent(
-     *                   @OA\Property(
-     *                      property="imageId",
-     *                      type="integer",
-     *                  ),
-     *                   @OA\Property(
-     *                      property="tagId",
-     *                      type="integer",
-     *                  )
-     * )
-     *     ),
-     *     @OA\Response(
-     *          response="200",
-     *          description="Success",
-     *          @OA\JsonContent(ref="#/components/schemas/LibraryImageTag")
-     *     ),
-     *     @OA\Response(
-     *          response="400",
-     *          description="Bad request",
-     *          @OA\JsonContent(ref="#/components/schemas/Error")
-     *     )
-     * )
-     */
-    #[Route("", name: "_associate", methods: ["POST"])]
+    #[Route('', name: '_associate', methods: ['POST'])]
     public function createAssociation(
         Request $request,
-        ModelFactory $modelFactory,
-        LibraryImageTagService $libraryImageTagService
-    ) {
-        $data = json_decode($request->getContent(), true);
-        /** @var LibraryImageTag $openApiLibraryImageTag */
-        $openApiLibraryImageTag = $modelFactory->buildModel('LibraryImageTag', $data);
-        $openApiLibraryImageTag->validate(self::GROUP_UPDATE);
+        LibraryImageTagService $libraryImageTagService,
+    ): JsonResponse {
+        $data = json_decode($request->getContent(), true) ?? [];
 
-        $image = $libraryImageTagService->associateImage(
-            $openApiLibraryImageTag->getImageId(),
-            $openApiLibraryImageTag->getTagId(),
+        $imageId = $data['imageId'] ?? null;
+        $tagId = $data['tagId'] ?? null;
+
+        if (null === $imageId || null === $tagId) {
+            return $this->legacyJson(['error' => 'imageId and tagId are required'], 400);
+        }
+
+        $imageTag = $libraryImageTagService->associateImage(
+            imageId: (string) $imageId,
+            tagId: (string) $tagId,
         );
 
-        $query = LibraryTagQuery::create();
-        $tag = $query->findOneById($openApiLibraryImageTag->getTagId());
+        $tag = LibraryTagQuery::create()->findPk((int) $tagId);
+        $locale = $this->resolveLocale($request);
 
-        return OpenApiService::jsonResponse(['imageTag' => $modelFactory->buildModel('LibraryImageTag', $image), 'tag' => $modelFactory->buildModel('LibraryTag', $tag)]);
+        return $this->legacyJson([
+            'imageTag' => LegacyLibraryImageSerializer::imageTagToArray($imageTag),
+            'tag' => null === $tag ? null : LegacyLibraryImageSerializer::tagToArray($tag, $locale),
+        ]);
     }
 
-    /**
-     * @OA\Delete(
-     *     path="/library/image_tag/{imageTagId}",
-     *     tags={ "Library tag"},
-     *     summary="Delete an association",
-     *     @OA\Parameter(
-     *          name="imageTagId",
-     *          in="path",
-     *          required=true,
-     *          @OA\Schema(
-     *              type="integer"
-     *          )
-     *     ),
-     *     @OA\Response(
-     *          response="204",
-     *          description="Success"
-     *     ),
-     *     @OA\Response(
-     *          response="400",
-     *          description="Bad request",
-     *          @OA\JsonContent(ref="#/components/schemas/Error")
-     *     )
-     * )
-     */
-    #[Route("/{imageTagId}", name: "_delete_association", methods: ["DELETE"], requirements: ["imageTagId" => "\d+"])]
+    #[Route('/{imageTagId}', name: '_delete_association', methods: ['DELETE'], requirements: ['imageTagId' => '\d+'])]
     public function deleteAssociation(
-        $imageTagId,
-        LibraryImageTagService $libraryImageTagService
-    ) {
+        int $imageTagId,
+        LibraryImageTagService $libraryImageTagService,
+    ): JsonResponse {
         $libraryImageTagService->deleteImageAssociation($imageTagId);
 
-        return new JsonResponse('Success', 204);
+        return $this->legacyJson('Success', 204);
+    }
+
+    private function resolveLocale(Request $request): string
+    {
+        $candidate = $request->request->get('locale') ?? $request->query->get('locale');
+
+        if (\is_string($candidate) && '' !== $candidate) {
+            return $candidate;
+        }
+
+        $session = $request->getSession();
+
+        if ($session->has('thelia.admin.edition.lang')) {
+            return $session->getAdminEditionLang()->getLocale();
+        }
+
+        return Lang::getDefaultLanguage()->getLocale();
+    }
+
+    private function legacyJson(mixed $data, int $status = 200): JsonResponse
+    {
+        $response = (new JsonResponse())->setContent(json_encode($data));
+        $response->headers->set('Access-Control-Allow-Origin', '*');
+        $response->setStatusCode($status);
+
+        return $response;
     }
 }

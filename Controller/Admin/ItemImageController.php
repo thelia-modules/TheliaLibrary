@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the Thelia package.
  * http://www.thelia.net
@@ -12,182 +14,83 @@
 
 namespace TheliaLibrary\Controller\Admin;
 
-use OpenApi\Annotations as OA;
-use OpenApi\Controller\Admin\BaseAdminOpenApiController;
-use OpenApi\Model\Api\ModelFactory;
-use OpenApi\Service\OpenApiService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
+use Thelia\Controller\Admin\BaseAdminController;
 use Thelia\Core\HttpFoundation\Request;
-use TheliaLibrary\Model\Api\LibraryItemImage;
+use TheliaLibrary\Controller\Admin\Support\LegacyLibraryImageSerializer;
 use TheliaLibrary\Service\LibraryItemImageService;
 
-#[Route("/open_api/library/item_image", name: "library_item_image")]
-class ItemImageController extends BaseAdminOpenApiController
+/**
+ * Backwards-compatibility shim for `/open_api/library/item_image` admin endpoints.
+ *
+ * Canonical API: `/api/admin/library_item_images` (AP 4.3).
+ */
+#[Route('/open_api/library/item_image', name: 'thelialibrary_legacy_item_image_admin')]
+final class ItemImageController extends BaseAdminController
 {
-    /**
-     * @OA\Post(
-     *     path="/library/item_image",
-     *     tags={ "Library image"},
-     *     summary="Associate an image to an item",
-     *     @OA\RequestBody(
-     *          required=true,
-     *          @OA\JsonContent(
-     *                   @OA\Property(
-     *                      property="imageId",
-     *                      type="integer",
-     *                  ),
-     *                   @OA\Property(
-     *                      property="itemType",
-     *                      type="string",
-     *                  ),
-     *                   @OA\Property(
-     *                      property="itemId",
-     *                      type="integer",
-     *                  ),
-     *                   @OA\Property(
-     *                      property="code",
-     *                      type="string",
-     *                  ),
-     *                   @OA\Property(
-     *                      property="visible",
-     *                      type="boolean",
-     *                  )
-     * )
-     *     ),
-     *     @OA\Response(
-     *          response="200",
-     *          description="Success",
-     *          @OA\JsonContent(ref="#/components/schemas/LibraryItemImage")
-     *     ),
-     *     @OA\Response(
-     *          response="400",
-     *          description="Bad request",
-     *          @OA\JsonContent(ref="#/components/schemas/Error")
-     *     )
-     * )
-     */
-    #[Route("", name: "_associate", methods: ["POST"])]
+    #[Route('', name: '_associate', methods: ['POST'])]
     public function createAssociation(
         Request $request,
-        ModelFactory $modelFactory,
-        LibraryItemImageService $libraryItemImageService
-    ) {
-        $data = json_decode($request->getContent(), true);
-        /** @var LibraryItemImage $openApiLibraryItemImage */
-        $openApiLibraryItemImage = $modelFactory->buildModel('LibraryItemImage', $data);
-        $openApiLibraryItemImage->validate(self::GROUP_UPDATE);
+        LibraryItemImageService $libraryItemImageService,
+    ): JsonResponse {
+        $data = json_decode($request->getContent(), true) ?? [];
 
-        $image = $libraryItemImageService->associateImage(
-            $openApiLibraryItemImage->getImageId(),
-            $openApiLibraryItemImage->getItemType(),
-            $openApiLibraryItemImage->getItemId(),
-            $openApiLibraryItemImage->getCode(),
-            $openApiLibraryItemImage->isVisible(),
-            $openApiLibraryItemImage->getPosition()
+        $imageId = $data['imageId'] ?? null;
+        $itemType = $data['itemType'] ?? null;
+        $itemId = $data['itemId'] ?? null;
+
+        if (null === $imageId || null === $itemType || null === $itemId) {
+            return $this->legacyJson(['error' => 'imageId, itemType and itemId are required'], 400);
+        }
+
+        $itemImage = $libraryItemImageService->associateImage(
+            imageId: $imageId,
+            itemType: $itemType,
+            itemId: $itemId,
+            code: $data['code'] ?? null,
+            visible: $data['visible'] ?? true,
+            position: $data['position'] ?? null,
         );
 
-        return OpenApiService::jsonResponse($modelFactory->buildModel('LibraryItemImage', $image));
+        return $this->legacyJson(LegacyLibraryImageSerializer::itemImageToArray($itemImage));
     }
 
-    /**
-     * @OA\Patch(
-     *     path="/library/item_image/{itemImageId}",
-     *     tags={ "Library image"},
-     *     summary="Update an association",
-     *     @OA\Parameter(
-     *          name="itemImageId",
-     *          in="path",
-     *          required=true,
-     *          @OA\Schema(
-     *              type="integer"
-     *          )
-     *     ),
-     *     @OA\RequestBody(
-     *          required=true,
-     *          @OA\JsonContent(
-     *                   @OA\Property(
-     *                      property="visible",
-     *                      type="boolean",
-     *                  ),
-     *                  @OA\Property(
-     *                      property="code",
-     *                      type="string",
-     *                  ),
-     *                   @OA\Property(
-     *                      property="position",
-     *                      type="integer",
-     *                  ),
-     *                   @OA\Property(
-     *                      property="positionMovement",
-     *                      type="string",
-     *                      enum={"up", "down"}
-     *                  )
-     *          )
-     *     ),
-     *     @OA\Response(
-     *          response="200",
-     *          description="Success",
-     *          @OA\JsonContent(ref="#/components/schemas/LibraryItemImage")
-     *     ),
-     *     @OA\Response(
-     *          response="400",
-     *          description="Bad request",
-     *          @OA\JsonContent(ref="#/components/schemas/Error")
-     *     )
-     * )
-     */
-    #[Route("/{itemImageId}", name: "_update_association", methods: ["PATCH"], requirements: ["itemImageId" => "\d+"])]
+    #[Route('/{itemImageId}', name: '_update_association', methods: ['PATCH'], requirements: ['itemImageId' => '\d+'])]
     public function updateAssociation(
-        $itemImageId,
+        int $itemImageId,
         Request $request,
-        ModelFactory $modelFactory,
-        LibraryItemImageService $libraryItemImageService
-    ) {
-        $data = json_decode($request->getContent(), true);
+        LibraryItemImageService $libraryItemImageService,
+    ): JsonResponse {
+        $data = json_decode($request->getContent(), true) ?? [];
 
-        $image = $libraryItemImageService->updateImageAssociation(
-            $itemImageId,
-            $data['code'] ?? null,
-            $data['visible'] ?? null,
-            $data['position'] ?? null,
-            $data['positionMovement'] ?? null
+        $itemImage = $libraryItemImageService->updateImageAssociation(
+            itemImageId: $itemImageId,
+            code: $data['code'] ?? null,
+            visible: $data['visible'] ?? null,
+            position: $data['position'] ?? null,
+            positionMovement: $data['positionMovement'] ?? null,
         );
 
-        return OpenApiService::jsonResponse($modelFactory->buildModel('LibraryItemImage', $image));
+        return $this->legacyJson(LegacyLibraryImageSerializer::itemImageToArray($itemImage));
     }
 
-    /**
-     * @OA\Delete(
-     *     path="/library/item_image/{itemImageId}",
-     *     tags={ "Library image"},
-     *     summary="Delete an association",
-     *     @OA\Parameter(
-     *          name="itemImageId",
-     *          in="path",
-     *          required=true,
-     *          @OA\Schema(
-     *              type="integer"
-     *          )
-     *     ),
-     *     @OA\Response(
-     *          response="204",
-     *          description="Success"
-     *     ),
-     *     @OA\Response(
-     *          response="400",
-     *          description="Bad request",
-     *          @OA\JsonContent(ref="#/components/schemas/Error")
-     *     )
-     * )
-     */
-    #[Route("/{itemImageId}", name: "_delete_association", methods: ["DELETE"], requirements: ["itemImageId" => "\d+"])]
+    #[Route('/{itemImageId}', name: '_delete_association', methods: ['DELETE'], requirements: ['itemImageId' => '\d+'])]
     public function deleteAssociation(
-        $itemImageId,
-        LibraryItemImageService $libraryItemImageService
-    ) {
+        int $itemImageId,
+        LibraryItemImageService $libraryItemImageService,
+    ): JsonResponse {
         $libraryItemImageService->deleteImageAssociation($itemImageId);
 
-        return new JsonResponse('Success', 204);
+        return $this->legacyJson('Success', 204);
+    }
+
+    private function legacyJson(mixed $data, int $status = 200): JsonResponse
+    {
+        $response = (new JsonResponse())->setContent(json_encode($data));
+        $response->headers->set('Access-Control-Allow-Origin', '*');
+        $response->setStatusCode($status);
+
+        return $response;
     }
 }

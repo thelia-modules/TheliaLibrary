@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the Thelia package.
  * http://www.thelia.net
@@ -12,181 +14,103 @@
 
 namespace TheliaLibrary\Controller\Admin;
 
-use OpenApi\Annotations as OA;
-use OpenApi\Controller\Admin\BaseAdminOpenApiController;
-use OpenApi\Model\Api\ModelFactory;
-use OpenApi\Service\OpenApiService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
+use Thelia\Controller\Admin\BaseAdminController;
 use Thelia\Core\HttpFoundation\Request;
+use Thelia\Model\Lang;
+use TheliaLibrary\Controller\Admin\Support\LegacyLibraryImageSerializer;
 use TheliaLibrary\Service\LibraryImageService;
 
-#[Route("/open_api/library/image", name: "library_image")]
-class ImageController extends BaseAdminOpenApiController
+/**
+ * Backwards-compatibility shim for the legacy `/open_api/library/image`
+ * endpoints still consumed by the bundled `@thelia/media-library` admin UI.
+ *
+ * The canonical API for new integrations lives under `/api/admin/library_images`
+ * (API Platform 4.3 resources). This controller exposes the same Propel logic
+ * but returns the legacy JSON shape expected by the npm bundle.
+ */
+#[Route('/open_api/library/image', name: 'thelialibrary_legacy_image_admin')]
+final class ImageController extends BaseAdminController
 {
-    /**
-     * @OA\Post(
-     *     path="/library/image",
-     *     tags={ "Library image"},
-     *     summary="Create a new image",
-     *     @OA\RequestBody(
-     *          required=true,
-     *          @OA\MediaType(
-     *             mediaType="multipart/form-data",
-     *             @OA\Schema(
-     *                   @OA\Property(
-     *                      property="title",
-     *                      type="string",
-     *                  ),
-     *                   @OA\Property(
-     *                      property="locale",
-     *                      type="string",
-     *                  ),
-     *                   @OA\Property(
-     *                      property="image",
-     *                      type="string",
-     *                      format="binary"
-     *                  )
-     *             )
-     * )
-     *     ),
-     *     @OA\Response(
-     *          response="200",
-     *          description="Success",
-     *          @OA\JsonContent(ref="#/components/schemas/LibraryImage")
-     *     ),
-     *     @OA\Response(
-     *          response="400",
-     *          description="Bad request",
-     *          @OA\JsonContent(ref="#/components/schemas/Error")
-     *     )
-     * )
-     */
-    #[Route("", name: "_create", methods: ["POST"])]
+    #[Route('', name: '_create', methods: ['POST'])]
     public function createImage(
         Request $request,
-        ModelFactory $modelFactory,
-        LibraryImageService $libraryImageService
-    ) {
-        $locale = $this->findLocale($request);
+        LibraryImageService $libraryImageService,
+    ): JsonResponse {
+        $file = $request->files->get('image');
 
-        $image = $libraryImageService->createImage(
-            $request->files->get('image'),
-            $request->request->get('title'),
-            $locale
-        );
-
-        return OpenApiService::jsonResponse($modelFactory->buildModel('LibraryImage', $image, $locale));
-    }
-
-    // Method POST because patch doesn't work with multipart/form-data
-
-    /**
-     * @OA\Post(
-     *     path="/library/image/{imageId}",
-     *     tags={ "Library image"},
-     *     summary="Update an image",
-     *     @OA\Parameter(
-     *          name="imageId",
-     *          in="path",
-     *          required=true,
-     *          @OA\Schema(
-     *              type="integer"
-     *          )
-     *     ),
-     *     @OA\RequestBody(
-     *          required=true,
-     *          @OA\MediaType(
-     *             mediaType="multipart/form-data",
-     *             @OA\Schema(
-     *                   @OA\Property(
-     *                      property="title",
-     *                      type="string",
-     *                  ),
-     *                   @OA\Property(
-     *                      property="locale",
-     *                      type="string",
-     *                  ),
-     *                   @OA\Property(
-     *                      property="image",
-     *                      type="string",
-     *                      format="binary"
-     *                  )
-     *             )
-     * )
-     *     ),
-     *     @OA\Response(
-     *          response="200",
-     *          description="Success",
-     *          @OA\JsonContent(ref="#/components/schemas/LibraryImage")
-     *     ),
-     *     @OA\Response(
-     *          response="400",
-     *          description="Bad request",
-     *          @OA\JsonContent(ref="#/components/schemas/Error")
-     *     )
-     * )
-     */
-    #[Route("/{imageId}", name: "_update", methods: ["POST"], requirements: ["imageId" => "\d+"])]
-    public function updateImage(
-        $imageId,
-        Request $request,
-        ModelFactory $modelFactory,
-        LibraryImageService $libraryImageService
-    ) {
-        $locale = $this->findLocale($request);
-        $image = $libraryImageService->updateImage(
-            $imageId,
-            $request->files->get('image'),
-            $request->request->get('title'),
-            $locale
-        );
-
-        return OpenApiService::jsonResponse($modelFactory->buildModel('LibraryImage', $image, $locale));
-    }
-
-    /**
-     * @OA\Delete(
-     *     path="/library/image/{imageId}",
-     *     tags={ "Library image"},
-     *     summary="Delete an image",
-     *     @OA\Parameter(
-     *          name="imageId",
-     *          in="path",
-     *          required=true,
-     *          @OA\Schema(
-     *              type="integer"
-     *          )
-     *     ),
-     *     @OA\Response(
-     *          response="204",
-     *          description="Success"
-     *     ),
-     *     @OA\Response(
-     *          response="400",
-     *          description="Bad request",
-     *          @OA\JsonContent(ref="#/components/schemas/Error")
-     *     )
-     * )
-     */
-    #[Route("/{imageId}", name: "_delete", methods: ["DELETE"], requirements: ["imageId" => "\d+"])]
-    public function deleteImage(
-        $imageId,
-        LibraryImageService $libraryImageService
-    ) {
-        $libraryImageService->deleteImage($imageId);
-
-        return new JsonResponse('Success', 204);
-    }
-
-    protected function findLocale(Request $request)
-    {
-        $locale = $request->get('locale');
-
-        if (null == $locale) {
-            $locale = $request->getSession()->getAdminEditionLang()->getLocale();
+        if (null === $file) {
+            return $this->legacyJson(['error' => 'Missing required image file'], 400);
         }
 
-        return $locale;
+        $locale = $this->resolveLocale($request);
+
+        $image = $libraryImageService->createImage(
+            file: $file,
+            title: self::asString($request->request->get('title')),
+            locale: $locale,
+        );
+
+        return $this->legacyJson(LegacyLibraryImageSerializer::imageToArray($image, $locale));
+    }
+
+    #[Route('/{imageId}', name: '_update', methods: ['POST'], requirements: ['imageId' => '\d+'])]
+    public function updateImage(
+        int $imageId,
+        Request $request,
+        LibraryImageService $libraryImageService,
+    ): JsonResponse {
+        $locale = $this->resolveLocale($request);
+
+        $image = $libraryImageService->updateImage(
+            imageId: $imageId,
+            file: $request->files->get('image'),
+            title: self::asString($request->request->get('title')),
+            locale: $locale,
+        );
+
+        return $this->legacyJson(LegacyLibraryImageSerializer::imageToArray($image, $locale));
+    }
+
+    #[Route('/{imageId}', name: '_delete', methods: ['DELETE'], requirements: ['imageId' => '\d+'])]
+    public function deleteImage(
+        int $imageId,
+        LibraryImageService $libraryImageService,
+    ): JsonResponse {
+        $libraryImageService->deleteImage($imageId);
+
+        return $this->legacyJson('Success', 204);
+    }
+
+    private function resolveLocale(Request $request): string
+    {
+        $candidate = $request->request->get('locale') ?? $request->query->get('locale');
+
+        if (\is_string($candidate) && '' !== $candidate) {
+            return $candidate;
+        }
+
+        $session = $request->getSession();
+
+        if ($session->has('thelia.admin.edition.lang')) {
+            return $session->getAdminEditionLang()->getLocale();
+        }
+
+        return Lang::getDefaultLanguage()->getLocale();
+    }
+
+    private static function asString(mixed $value): ?string
+    {
+        return \is_string($value) && '' !== $value ? $value : null;
+    }
+
+    private function legacyJson(mixed $data, int $status = 200): JsonResponse
+    {
+        $response = (new JsonResponse())->setContent(json_encode($data));
+        $response->headers->set('Access-Control-Allow-Origin', '*');
+        $response->setStatusCode($status);
+
+        return $response;
     }
 }

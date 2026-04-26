@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the Thelia package.
  * http://www.thelia.net
@@ -12,201 +14,105 @@
 
 namespace TheliaLibrary\Controller\Admin;
 
-use OpenApi\Annotations as OA;
-use OpenApi\Controller\Admin\BaseAdminOpenApiController;
-use OpenApi\Model\Api\ModelFactory;
-use OpenApi\Service\OpenApiService;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
-use Thelia\Core\HttpFoundation\JsonResponse;
+use Thelia\Controller\Admin\BaseAdminController;
 use Thelia\Core\HttpFoundation\Request;
-use TheliaLibrary\Model\Base\LibraryTagQuery;
+use Thelia\Model\Lang;
+use TheliaLibrary\Controller\Admin\Support\LegacyLibraryImageSerializer;
 use TheliaLibrary\Model\LibraryTag;
+use TheliaLibrary\Model\LibraryTagQuery;
 use TheliaLibrary\Service\LibraryTagService;
 
-#[Route("/open_api/library/tag", name: "library_tag")]
-class TagController extends BaseAdminOpenApiController
+/**
+ * Backwards-compatibility shim for the legacy `/open_api/library/tag` endpoints.
+ *
+ * Canonical API: `/api/admin/library_tags` (AP 4.3).
+ */
+#[Route('/open_api/library/tag', name: 'thelialibrary_legacy_tag_admin')]
+final class TagController extends BaseAdminController
 {
-    /**
-     * @OA\Get(
-     *     path="/library/tag",
-     *     tags={"Library tag"},
-     *     summary="Get tags",
-     *     @OA\Response(
-     *          response="200",
-     *          description="Success",
-     *          @OA\JsonContent(ref="#/components/schemas/LibraryTag")
-     *     ),
-     *     @OA\Response(
-     *          response="400",
-     *          description="Bad request",
-     *          @OA\JsonContent(ref="#/components/schemas/Error")
-     *     )
-     * )
-     */
-    #[Route("", name: "_view", methods: ["GET"])]
-    public function getTags(Request $request, ModelFactory $modelFactory)
+    #[Route('', name: '_view', methods: ['GET'])]
+    public function getTags(Request $request): JsonResponse
     {
-        $query = LibraryTagQuery::create();
-        $locale = $this->findLocale($request);
+        $locale = $this->resolveLocale($request);
 
-        return OpenApiService::jsonResponse(array_map(
-            function (LibraryTag $tag) use ($modelFactory, $locale) {
-                /** @var \TheliaLibrary\Model\Api\LibraryTag $tagModel */
-                $tagModel = $modelFactory->buildModel('LibraryTag', $tag, $locale);
+        $payload = array_map(
+            static fn (LibraryTag $tag): array => LegacyLibraryImageSerializer::tagToArray($tag, $locale),
+            iterator_to_array(LibraryTagQuery::create()->find()),
+        );
 
-                return $tagModel;
-            },
-            iterator_to_array($query->find())
-        ));
+        return $this->legacyJson($payload);
     }
 
-    /**
-     * @OA\Post(
-     *     path="/library/tag",
-     *     tags={ "Library tag"},
-     *     summary="Create a new tag",
-     *     @OA\RequestBody(
-     *          required=true,
-     *             @OA\JsonContent(
-     *                 @OA\Property(
-     *                     property="title",
-     *                     type="string"
-     *                 ),
-     *                 @OA\Property(
-     *                     property="colorCode",
-     *                     default="#000000",
-     *                     type="string"
-     *                 ),
-     *             )
-     *     ),
-     *     @OA\Response(
-     *          response="200",
-     *          description="Success",
-     *          @OA\JsonContent(ref="#/components/schemas/LibraryTag")
-     *     ),
-     *     @OA\Response(
-     *          response="400",
-     *          description="Bad request",
-     *          @OA\JsonContent(ref="#/components/schemas/Error")
-     *     )
-     * )
-     */
-    #[Route("", name: "_create", methods: ["POST"])]
+    #[Route('', name: '_create', methods: ['POST'])]
     public function createTag(
         Request $request,
-        ModelFactory $modelFactory,
-        LibraryTagService $libraryTagService
-    ) {
-        $locale = $this->findLocale($request);
+        LibraryTagService $libraryTagService,
+    ): JsonResponse {
+        $locale = $this->resolveLocale($request);
 
         $tag = $libraryTagService->createTag(
-            $request->request->get('title'),
-            $request->request->get('colorCode'),
-            $locale
+            title: (string) ($request->request->get('title') ?? ''),
+            colorCode: (string) ($request->request->get('colorCode') ?? ''),
         );
 
-        return OpenApiService::jsonResponse($modelFactory->buildModel('LibraryTag', $tag, $locale));
+        return $this->legacyJson(LegacyLibraryImageSerializer::tagToArray($tag, $locale));
     }
 
-    /**
-     * @OA\Post(
-     *     path="/library/tag/{tagId}",
-     *     tags={ "Library tag"},
-     *     summary="update a tag",
-     *     @OA\Parameter(
-     *          name="tagId",
-     *          in="path",
-     *          required=true,
-     *          @OA\Schema(
-     *              type="integer"
-     *          )
-     *     ),
-     *     @OA\RequestBody(
-     *          required=true,
-     *             @OA\JsonContent(
-     *                 @OA\Property(
-     *                     property="title",
-     *                     type="string"
-     *                 ),
-     *                 @OA\Property(
-     *                     property="colorCode",
-     *                     default="#000000",
-     *                     type="string"
-     *                 ),
-     *             )
-     *     ),
-     *     @OA\Response(
-     *          response="200",
-     *          description="Success",
-     *          @OA\JsonContent(ref="#/components/schemas/LibraryTag")
-     *     ),
-     *     @OA\Response(
-     *          response="400",
-     *          description="Bad request",
-     *          @OA\JsonContent(ref="#/components/schemas/Error")
-     *     )
-     * )
-     */
-    #[Route("/{tagId}", name: "_update", methods: ["POST"], requirements: ["tagId" => "\d+"])]
+    #[Route('/{tagId}', name: '_update', methods: ['POST'], requirements: ['tagId' => '\d+'])]
     public function updateTag(
-        $tagId,
+        int $tagId,
         Request $request,
-        ModelFactory $modelFactory,
-        LibraryTagService $libraryTagService
-    ) {
-        $locale = $this->findLocale($request);
+        LibraryTagService $libraryTagService,
+    ): JsonResponse {
+        $locale = $this->resolveLocale($request);
+
+        $title = $request->request->get('title');
+        $colorCode = $request->request->get('colorCode');
+
         $tag = $libraryTagService->updateTag(
-            $tagId,
-            $request->request->get('title'),
-            $request->request->get('colorCode'),
-            $locale
+            tagId: $tagId,
+            title: \is_string($title) ? $title : null,
+            colorCode: \is_string($colorCode) ? $colorCode : null,
         );
 
-        return OpenApiService::jsonResponse($modelFactory->buildModel('LibraryTag', $tag, $locale));
+        return $this->legacyJson(LegacyLibraryImageSerializer::tagToArray($tag, $locale));
     }
 
-    /**
-     * @OA\Delete(
-     *     path="/library/tag/{tagId}",
-     *     tags={ "Library tag"},
-     *     summary="Delete a tag",
-     *     @OA\Parameter(
-     *          name="tagId",
-     *          in="path",
-     *          required=true,
-     *          @OA\Schema(
-     *              type="integer"
-     *          )
-     *     ),
-     *     @OA\Response(
-     *          response="204",
-     *          description="Success"
-     *     ),
-     *     @OA\Response(
-     *          response="400",
-     *          description="Bad request",
-     *          @OA\JsonContent(ref="#/components/schemas/Error")
-     *     )
-     * )
-     */
-    #[Route("/{tagId}", name: "_delete", methods: ["DELETE"], requirements: ["tagId" => "\d+"])]
+    #[Route('/{tagId}', name: '_delete', methods: ['DELETE'], requirements: ['tagId' => '\d+'])]
     public function deleteTag(
-        $tagId,
-        LibraryTagService $libraryTagService
-    ) {
+        int $tagId,
+        LibraryTagService $libraryTagService,
+    ): JsonResponse {
         $libraryTagService->deleteTag($tagId);
 
-        return new JsonResponse('Success', 204);
+        return $this->legacyJson('Success', 204);
     }
 
-    protected function findLocale(Request $request)
+    private function resolveLocale(Request $request): string
     {
-        $locale = $request->get('locale');
+        $candidate = $request->request->get('locale') ?? $request->query->get('locale');
 
-        if (null == $locale) {
-            $locale = $request->getSession()->getAdminEditionLang()->getLocale();
+        if (\is_string($candidate) && '' !== $candidate) {
+            return $candidate;
         }
 
-        return $locale;
+        $session = $request->getSession();
+
+        if ($session->has('thelia.admin.edition.lang')) {
+            return $session->getAdminEditionLang()->getLocale();
+        }
+
+        return Lang::getDefaultLanguage()->getLocale();
+    }
+
+    private function legacyJson(mixed $data, int $status = 200): JsonResponse
+    {
+        $response = (new JsonResponse())->setContent(json_encode($data));
+        $response->headers->set('Access-Control-Allow-Origin', '*');
+        $response->setStatusCode($status);
+
+        return $response;
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the Thelia package.
  * http://www.thelia.net
@@ -12,158 +14,57 @@
 
 namespace TheliaLibrary\Controller\Front\OpenApi;
 
-use OpenApi\Annotations as OA;
-use OpenApi\Controller\Front\BaseFrontOpenApiController;
-use OpenApi\Model\Api\ModelFactory;
-use OpenApi\Service\OpenApiService;
 use Propel\Runtime\ActiveQuery\Criteria;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
+use Thelia\Controller\Front\BaseFrontController;
 use Thelia\Core\HttpFoundation\Request;
+use Thelia\Model\Lang;
+use TheliaLibrary\Controller\Admin\Support\LegacyLibraryImageSerializer;
 use TheliaLibrary\Model\LibraryImage;
 use TheliaLibrary\Model\LibraryImageQuery;
-use TheliaLibrary\Model\LibraryItemImageQuery;
 
-#[Route("/open_api/library/image", name: "front_library_image")]
-class ImageController extends BaseFrontOpenApiController
+/**
+ * Backwards-compatibility shim for `/open_api/library/image` (front, GET).
+ *
+ * Canonical API: `/api/front/library_images` (AP 4.3).
+ */
+#[Route('/open_api/library/image', name: 'thelialibrary_legacy_image_front')]
+final class ImageController extends BaseFrontController
 {
-    /**
-     * @OA\Get(
-     *     path="/library/image",
-     *     tags={"Library image"},
-     *     summary="Get images",
-     *     @OA\Parameter(
-     *          name="id",
-     *          in="query",
-     *          @OA\Schema(
-     *              type="integer"
-     *          )
-     *     ),
-     *     @OA\Parameter(
-     *          name="itemId",
-     *          in="query",
-     *          @OA\Schema(
-     *              type="integer"
-     *          )
-     *     ),
-     *     @OA\Parameter(
-     *          name="itemType",
-     *          in="query",
-     *          @OA\Schema(
-     *              type="string"
-     *          )
-     *     ),
-     *     @OA\Parameter(
-     *          name="title",
-     *          in="query",
-     *          @OA\Schema(
-     *              type="string"
-     *          )
-     *     ),
-     *     @OA\Parameter(
-     *          name="code",
-     *          in="query",
-     *          @OA\Schema(
-     *              type="string"
-     *          )
-     *     ),
-     *     @OA\Parameter(
-     *          name="onlyVisible",
-     *          in="query",
-     *          @OA\Schema(
-     *              type="boolean",
-     *              default="true"
-     *          )
-     *     ),
-     *     @OA\Parameter(
-     *          name="offset",
-     *          in="query",
-     *          @OA\Schema(
-     *              type="integer"
-     *          )
-     *     ),
-     *     @OA\Parameter(
-     *          name="limit",
-     *          in="query",
-     *          @OA\Schema(
-     *              type="integer"
-     *          )
-     *     ),
-     *     @OA\Parameter(
-     *          name="tagId",
-     *          in="query",
-     *          @OA\Schema(
-     *              type="integer"
-     *          )
-     *     ),
-     *     @OA\Parameter(
-     *          name="width",
-     *          in="query",
-     *          @OA\Schema(
-     *              type="integer"
-     *          )
-     *     ),
-     *     @OA\Parameter(
-     *          name="height",
-     *          in="query",
-     *          @OA\Schema(
-     *              type="integer"
-     *          )
-     *     ),
-     *     @OA\Parameter(
-     *          name="locale",
-     *          in="query",
-     *          @OA\Schema(
-     *              type="string"
-     *          )
-     *     ),
-     *     @OA\Response(
-     *          response="200",
-     *          description="Success",
-     *          @OA\JsonContent(ref="#/components/schemas/LibraryImage")
-     *     ),
-     *     @OA\Response(
-     *          response="400",
-     *          description="Bad request",
-     *          @OA\JsonContent(ref="#/components/schemas/Error")
-     *     )
-     * )
-     */
-    #[Route("", name: "_get", methods: ["GET"])]
-    public function getImage(
-        Request $request,
-        ModelFactory $modelFactory
-    ) {
-        $locale = $this->findLocale($request);
+    #[Route('', name: '_get', methods: ['GET'])]
+    public function getImage(Request $request): JsonResponse
+    {
+        $locale = $this->resolveLocale($request);
+        $query = LibraryImageQuery::create()->orderById(Criteria::DESC);
 
-        $imageQuery = LibraryImageQuery::create()->orderById(Criteria::DESC);
-
-        if (null !== $id = $request->get('id')) {
-            $imageQuery->filterById($id);
+        if (null !== $id = $request->query->get('id')) {
+            $query->filterById((int) $id);
         }
 
-        if (null !== $title = $request->get('title')) {
-            $imageQuery->useLibraryImageI18nQuery()
+        if (null !== $title = $request->query->get('title')) {
+            $query->useLibraryImageI18nQuery()
                 ->filterByLocale($locale)
-                ->filterByTitle("%$title%", Criteria::LIKE)
+                ->filterByTitle('%'.$title.'%', Criteria::LIKE)
                 ->endUse();
         }
 
         $itemImageQuery = null;
 
-        if (null !== $itemId = $request->get('itemId')) {
-            $itemImageQuery = $this->getOrInitItemJoin($imageQuery, $itemImageQuery)->filterByItemId($itemId);
+        if (null !== $itemId = $request->query->get('itemId')) {
+            $itemImageQuery = $this->getOrInitItemJoin($query, $itemImageQuery)->filterByItemId((int) $itemId);
         }
 
-        if (null !== $itemType = $request->get('itemType')) {
-            $itemImageQuery = $this->getOrInitItemJoin($imageQuery, $itemImageQuery)->filterByItemType($itemType);
+        if (null !== $itemType = $request->query->get('itemType')) {
+            $itemImageQuery = $this->getOrInitItemJoin($query, $itemImageQuery)->filterByItemType($itemType);
         }
 
-        if (null !== $code = $request->get('code')) {
-            $itemImageQuery = $this->getOrInitItemJoin($imageQuery, $itemImageQuery)->filterByCode($code);
+        if (null !== $code = $request->query->get('code')) {
+            $itemImageQuery = $this->getOrInitItemJoin($query, $itemImageQuery)->filterByCode($code);
         }
 
-        if (true === $request->get('onlyVisible')) {
-            $itemImageQuery = $this->getOrInitItemJoin($imageQuery, $itemImageQuery)->filterByVisible(true);
+        if (true === filter_var($request->query->get('onlyVisible'), \FILTER_VALIDATE_BOOLEAN)) {
+            $itemImageQuery = $this->getOrInitItemJoin($query, $itemImageQuery)->filterByVisible(1);
         }
 
         if (null !== $itemImageQuery) {
@@ -171,35 +72,27 @@ class ImageController extends BaseFrontOpenApiController
             $itemImageQuery->endUse();
         }
 
-        if (null !== $tagId = $request->get('tagId')) {
-            $itemImageQuery = $imageQuery->useLibraryImageTagQuery()->filterByTagId($tagId)->endUse();
+        if (null !== $tagId = $request->query->get('tagId')) {
+            $query->useLibraryImageTagQuery()
+                ->filterByTagId((int) $tagId)
+                ->endUse();
         }
 
-        if (null !== $limit = $request->get('limit', 20)) {
-            $imageQuery->limit($limit);
-        }
+        $query->limit((int) $request->query->get('limit', 20));
+        $query->offset((int) $request->query->get('offset', 0));
 
-        if (null !== $offset = $request->get('offset', 0)) {
-            $imageQuery->offset($offset);
-        }
+        $width = self::asInt($request->query->get('width'));
+        $height = self::asInt($request->query->get('height'));
 
-        $width = $request->get('width');
-        $height = $request->get('height');
+        $payload = array_map(
+            static fn (LibraryImage $image): array => LegacyLibraryImageSerializer::imageToArray($image, $locale, $width, $height),
+            iterator_to_array($query->find()),
+        );
 
-        return OpenApiService::jsonResponse(array_map(
-            function (LibraryImage $image) use ($modelFactory, $locale, $width, $height) {
-                /** @var \TheliaLibrary\Model\Api\LibraryImage $imageModel */
-                $imageModel = $modelFactory->buildModel('LibraryImage', $image, $locale);
-                $imageModel->setWidth($width);
-                $imageModel->setHeight($height);
-
-                return $imageModel;
-            },
-            iterator_to_array($imageQuery->find())
-        ));
+        return $this->legacyJson($payload);
     }
 
-    protected function getOrInitItemJoin($query, $itemImageQuery = null): LibraryItemImageQuery
+    private function getOrInitItemJoin($query, $itemImageQuery = null)
     {
         if (null !== $itemImageQuery) {
             return $itemImageQuery;
@@ -208,14 +101,38 @@ class ImageController extends BaseFrontOpenApiController
         return $query->useLibraryItemImageQuery();
     }
 
-    protected function findLocale(Request $request)
+    private function resolveLocale(Request $request): string
     {
-        $locale = $request->get('locale');
+        $candidate = $request->query->get('locale');
 
-        if (null == $locale) {
-            $locale = $request->getSession()->getLang()->getLocale();
+        if (\is_string($candidate) && '' !== $candidate) {
+            return $candidate;
         }
 
-        return $locale;
+        $session = $request->getSession();
+
+        if ($session->has('thelia.session.lang')) {
+            return $session->getLang()->getLocale();
+        }
+
+        return Lang::getDefaultLanguage()->getLocale();
+    }
+
+    private static function asInt(mixed $value): ?int
+    {
+        if (null === $value || '' === $value) {
+            return null;
+        }
+
+        return (int) $value;
+    }
+
+    private function legacyJson(mixed $data, int $status = 200): JsonResponse
+    {
+        $response = (new JsonResponse())->setContent(json_encode($data));
+        $response->headers->set('Access-Control-Allow-Origin', '*');
+        $response->setStatusCode($status);
+
+        return $response;
     }
 }

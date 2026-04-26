@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the Thelia package.
  * http://www.thelia.net
@@ -12,182 +14,101 @@
 
 namespace TheliaLibrary\Controller\Front\OpenApi;
 
-use OpenApi\Annotations as OA;
-use OpenApi\Controller\Front\BaseFrontOpenApiController;
-use OpenApi\Model\Api\ModelFactory;
-use OpenApi\Service\OpenApiService;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
+use Thelia\Controller\Front\BaseFrontController;
 use Thelia\Core\HttpFoundation\Request;
+use Thelia\Model\Lang;
+use TheliaLibrary\Controller\Admin\Support\LegacyLibraryImageSerializer;
 use TheliaLibrary\Model\LibraryItemImage;
 use TheliaLibrary\Model\LibraryItemImageQuery;
 
-#[Route("/open_api/library/item_image", name: "front_library_item_image")]
-class ItemImageController extends BaseFrontOpenApiController
+/**
+ * Backwards-compatibility shim for `/open_api/library/item_image` (front, GET).
+ *
+ * Canonical API: `/api/front/library_item_images` (AP 4.3).
+ */
+#[Route('/open_api/library/item_image', name: 'thelialibrary_legacy_item_image_front')]
+final class ItemImageController extends BaseFrontController
 {
-    /**
-     * @OA\Get(
-     *     path="/library/item_image",
-     *     tags={"Library image"},
-     *     summary="Get item images association",
-     *     @OA\Parameter(
-     *          name="itemId",
-     *          in="query",
-     *          @OA\Schema(
-     *              type="integer"
-     *          )
-     *     ),
-     *     @OA\Parameter(
-     *          name="itemType",
-     *          in="query",
-     *          @OA\Schema(
-     *              type="string"
-     *          )
-     *     ),
-     *     @OA\Parameter(
-     *          name="code",
-     *          in="query",
-     *          @OA\Schema(
-     *              type="string"
-     *          )
-     *     ),
-     *     @OA\Parameter(
-     *          name="offset",
-     *          in="query",
-     *          @OA\Schema(
-     *              type="integer"
-     *          )
-     *     ),
-     *     @OA\Parameter(
-     *          name="limit",
-     *          in="query",
-     *          @OA\Schema(
-     *              type="integer"
-     *          )
-     *     ),
-     *     @OA\Response(
-     *          response="200",
-     *          description="Success",
-     *          @OA\JsonContent(ref="#/components/schemas/LibraryItemImage")
-     *     ),
-     *     @OA\Response(
-     *          response="400",
-     *          description="Bad request",
-     *          @OA\JsonContent(ref="#/components/schemas/Error")
-     *     )
-     * )
-     */
-    #[Route("", name: "_get", methods: ["GET"])]
-    public function getItemImage(
-        Request $request,
-        ModelFactory $modelFactory
-    ) {
-        $locale = $this->findLocale($request);
+    private const DEFAULT_TYPES = ['product', 'category', 'content', 'folder'];
 
-        $itemImageQuery = LibraryItemImageQuery::create();
-
-        if (null !== $imageId = $request->get('imageId')) {
-            $itemImageQuery->filterByImageId($imageId);
-        }
-
-        if (null !== $itemType = $request->get('itemType')) {
-            $itemImageQuery->filterByItemType($itemType);
-        }
-
-        if (null !== $itemId = $request->get('itemId')) {
-            $itemImageQuery->filterByItemId($itemId);
-        }
-
-        if (null !== $code = $request->get('code')) {
-            $itemImageQuery->filterByCode($code);
-        }
-
-        if (null !== $limit = $request->get('limit', 20)) {
-            $itemImageQuery->limit($limit);
-        }
-
-        if (null !== $offset = $request->get('offset', 0)) {
-            $itemImageQuery->offset($offset);
-        }
-
-        $itemImageQuery->orderByPosition();
-
-        return OpenApiService::jsonResponse(array_map(
-            function (LibraryItemImage $itemImage) use ($modelFactory, $locale) {
-                return $modelFactory->buildModel('LibraryItemImage', $itemImage, $locale);
-            },
-            iterator_to_array($itemImageQuery->find())
-        ));
-    }
-
-    /**
-     * @OA\Get(
-     *     path="/library/item_image/types",
-     *     tags={"Library image"},
-     *     summary="Get all item types availables",
-     *     @OA\Parameter(
-     *          name="onlyExisting",
-     *          description="If false basic Thelia types will be added (product, content, ...) even if they have no image associated",
-     *          in="query",
-     *          @OA\Schema(
-     *              type="boolean",
-     *              default="false"
-     *          )
-     *     ),
-     *     @OA\Response(
-     *          response="200",
-     *          description="Success",
-     *          @OA\JsonContent(
-     *                  type="array",
-     *                  @OA\Items(
-     *                      type="string",
-     *                  )
-     *          )
-     *     ),
-     *     @OA\Response(
-     *          response="400",
-     *          description="Bad request",
-     *          @OA\JsonContent(ref="#/components/schemas/Error")
-     *     )
-     * )
-     */
-    #[Route("/types", name: "_type_list", methods: ["GET"])]
-    public function getItemTypes(
-        Request $request
-    ) {
-        $itemTypes = array_map(
-            function (LibraryItemImage $libraryItemImage) {
-                return $libraryItemImage->getItemType();
-            },
-            iterator_to_array(LibraryItemImageQuery::create()
-            ->groupByItemType()
-            ->find())
-        );
-
-        if (false === $request->get('onlyExisting', false) || 'false' === $request->get('onlyExisting', false)) {
-            $itemTypes = array_merge(
-                [
-                    'product',
-                    'category',
-                    'content',
-                    'folder',
-                ],
-                $itemTypes
-            );
-        }
-
-        return OpenApiService::jsonResponse(
-            $itemTypes
-        );
-    }
-
-    protected function findLocale(Request $request)
+    #[Route('', name: '_get', methods: ['GET'])]
+    public function getItemImage(Request $request): JsonResponse
     {
-        $locale = $request->get('locale');
+        $locale = $this->resolveLocale($request);
+        $query = LibraryItemImageQuery::create();
 
-        if (null == $locale) {
-            $locale = $request->getSession()->getAdminEditionLang()->getLocale();
+        if (null !== $imageId = $request->query->get('imageId')) {
+            $query->filterByImageId((int) $imageId);
         }
 
-        return $locale;
+        if (null !== $itemType = $request->query->get('itemType')) {
+            $query->filterByItemType($itemType);
+        }
+
+        if (null !== $itemId = $request->query->get('itemId')) {
+            $query->filterByItemId((int) $itemId);
+        }
+
+        if (null !== $code = $request->query->get('code')) {
+            $query->filterByCode($code);
+        }
+
+        $query->limit((int) $request->query->get('limit', 20));
+        $query->offset((int) $request->query->get('offset', 0));
+        $query->orderByPosition();
+
+        $payload = array_map(
+            static fn (LibraryItemImage $itemImage): array => LegacyLibraryImageSerializer::itemImageToArray($itemImage, $locale),
+            iterator_to_array($query->find()),
+        );
+
+        return $this->legacyJson($payload);
+    }
+
+    #[Route('/types', name: '_type_list', methods: ['GET'])]
+    public function getItemTypes(Request $request): JsonResponse
+    {
+        $existingTypes = array_values(array_filter(array_map(
+            static fn (LibraryItemImage $itemImage): ?string => $itemImage->getItemType(),
+            iterator_to_array(
+                LibraryItemImageQuery::create()->groupByItemType()->find(),
+            ),
+        )));
+
+        $onlyExisting = filter_var($request->query->get('onlyExisting', false), \FILTER_VALIDATE_BOOLEAN);
+
+        $payload = $onlyExisting
+            ? $existingTypes
+            : array_values(array_unique(array_merge(self::DEFAULT_TYPES, $existingTypes)));
+
+        return $this->legacyJson($payload);
+    }
+
+    private function resolveLocale(Request $request): string
+    {
+        $candidate = $request->query->get('locale');
+
+        if (\is_string($candidate) && '' !== $candidate) {
+            return $candidate;
+        }
+
+        $session = $request->getSession();
+
+        if ($session->has('thelia.session.lang')) {
+            return $session->getLang()->getLocale();
+        }
+
+        return Lang::getDefaultLanguage()->getLocale();
+    }
+
+    private function legacyJson(mixed $data, int $status = 200): JsonResponse
+    {
+        $response = (new JsonResponse())->setContent(json_encode($data));
+        $response->headers->set('Access-Control-Allow-Origin', '*');
+        $response->setStatusCode($status);
+
+        return $response;
     }
 }
