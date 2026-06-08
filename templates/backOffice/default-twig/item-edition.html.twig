@@ -1,0 +1,13 @@
+{# TheliaLibrary — item image manager hook fragment #}
+<p>{{ 'Item type: %type'|trans({'%type': itemType}, 'thelialibrary') }} / {{ 'Item id: %id'|trans({'%id': itemId}, 'thelialibrary') }}</p>
+<a href="{{ app.request.requestUri }}{{ app.request.queryString ? '&' : '?' }}force_legacy_imagemanager=1">
+    {{ 'Use old image manager'|trans({}, 'thelialibrary') }}
+</a>
+
+<div id="imageManager"
+     data-item-type="{{ itemType }}"
+     data-item-id="{{ itemId }}">
+</div>
+
+<script type="text/javascript" crossorigin src="https://unpkg.com/react@17.0.2/umd/react.development.js"></script>
+<script type="text/javascript" crossorigin src="https://unpkg.com/react-dom@17.0.2/umd/react-dom.development.js"></script>

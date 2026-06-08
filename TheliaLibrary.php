@@ -12,11 +12,7 @@
 
 namespace TheliaLibrary;
 
-use phpDocumentor\Reflection\Types\Self_;
 use Propel\Runtime\Connection\ConnectionInterface;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ServicesConfigurator;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
@@ -25,12 +21,6 @@ use Thelia\Module\BaseModule;
 
 class TheliaLibrary extends BaseModule
 {
-    public function __construct(
-
-    )
-    {
-    }
-
     /** @var string */
     public const DOMAIN_NAME = 'thelialibrary';
 

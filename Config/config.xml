@@ -10,12 +10,6 @@
         -->
     </loops>
 
-    <forms>
-        <!--
-        <form name="MyFormName" class="TheliaLibrary\Form\MySuperForm" />
-        -->
-    </forms>
-
     <commands>
         <!--
         <command class="TheliaLibrary\Command\MySuperCommand" />
@@ -26,19 +20,6 @@
       <!-- needed to be used in loop...   -->
       <service id="thelia_library_image" alias="TheliaLibrary\Service\LibraryImageService" public="true"/>
     </services>
-
-
-    <hooks>
-      <hook id="thelialibrary.tb.plugin" class="TheliaLibrary\Hook\BackHook">
-        <tag name="hook.event_listener" event="thelia.blocks.plugins" type="back" templates="render:tb-plugin/import-plugin.html" />
-        <tag name="hook.event_listener" event="thelia.blocks.plugincss" type="back" templates="render:tb-plugin/import-styles.html" />
-      </hook>
-      <!--
-      <hook id="thelialibrary.item.editions" class="TheliaLibrary\Hook\BackHook">
-        <tag name="hook.event_listener" event="item.edition.images" type="back" method="onItemEdition" />
-      </hook>
-      -->
-    </hooks>
 
 
     <!--
