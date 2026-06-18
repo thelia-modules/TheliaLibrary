@@ -26,9 +26,6 @@ class BackHook extends BaseHook
             'thelia.blocks.plugincss' => [
                 ['type' => 'back', 'method' => 'onTheliaBlocksPluginCss'],
             ],
-            'item.edition.images' => [
-                ['type' => 'back', 'method' => 'onItemEdition'],
-            ],
         ];
     }
 
@@ -40,21 +37,5 @@ class BackHook extends BaseHook
     public function onTheliaBlocksPluginCss(HookRenderEvent $event): void
     {
         $event->add($this->render('tb-plugin/import-styles.html.twig'));
-    }
-
-    public function onItemEdition(HookRenderEvent $event): void
-    {
-        $request = $this->getRequest();
-        $forceLegacy = $request->request->get('force_legacy_imagemanager')
-            ?? $request->query->get('force_legacy_imagemanager');
-
-        if (!$forceLegacy) {
-            $content = $this->render('item-edition.html.twig', [
-                'itemType' => $event->getArgument('itemType'),
-                'itemId' => $event->getArgument('itemId'),
-            ]);
-
-            $event->add($content);
-        }
     }
 }
