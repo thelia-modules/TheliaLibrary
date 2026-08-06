@@ -33,8 +33,8 @@ class LibraryTagService
 
     public function updateTag(
         int $tagId,
-        string $title = null,
-        string $colorCode = null
+        ?string $title = null,
+        ?string $colorCode = null
     ): LibraryTag {
         $tag = LibraryTagQuery::create()
             ->filterById($tagId)

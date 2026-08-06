@@ -35,8 +35,8 @@ class LibraryItemImageService
 
     public function createAndAssociateImage(
         File $file,
-        string $imageTitle = null,
-        string $locale = null,
+        ?string $imageTitle = null,
+        ?string $locale = null,
         $itemType,
         $itemId,
         $code = null,

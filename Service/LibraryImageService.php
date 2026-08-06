@@ -49,8 +49,8 @@ class LibraryImageService
      */
     public function createImage(
         File $file,
-        string $title = null,
-        string $locale = null
+        ?string $title = null,
+        ?string $locale = null
     ): LibraryImage {
         return $this->createOrUpdateImage($file, $title, $locale);
     }
@@ -60,9 +60,9 @@ class LibraryImageService
      */
     public function updateImage(
         $imageId,
-        File $file = null,
-        string $title = null,
-        string $locale = null
+        ?File $file = null,
+        ?string $title = null,
+        ?string $locale = null
     ): LibraryImage {
         return $this->createOrUpdateImage($file, $title, $locale, $imageId);
     }
@@ -95,7 +95,7 @@ class LibraryImageService
     }
 
     public function getImagePublicUrl(
-        LibraryImage $image = null,
+        ?LibraryImage $image = null,
         $width = null,
         $height = null,
         $format = null
@@ -105,6 +105,12 @@ class LibraryImageService
         }
 
         $fileName = $this->imageService->getImageFileName($image);
+
+        // An image row whose file is missing has no URL to offer, and asking
+        // pathinfo() for the extension of nothing is a deprecation.
+        if (null === $fileName) {
+            return null;
+        }
 
         $format = $format ?? pathinfo($fileName, \PATHINFO_EXTENSION);
         $size = 'max';
@@ -116,10 +122,10 @@ class LibraryImageService
     }
 
     protected function createOrUpdateImage(
-        File $file = null,
-        string $title = null,
-        string $locale = null,
-        int $imageId = null
+        ?File $file = null,
+        ?string $title = null,
+        ?string $locale = null,
+        ?int $imageId = null
     ) {
         $image = null !== $imageId
             ? LibraryImageQuery::create()->filterById($imageId)->findOne()

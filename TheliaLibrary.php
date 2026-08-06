@@ -28,7 +28,7 @@ class TheliaLibrary extends BaseModule
 
     public const IMAGINE_CONFIG_FILE = THELIA_ROOT.'config/packages/liip_imagine_thelia.yaml';
 
-    public function preActivation(ConnectionInterface $con = null): bool
+    public function preActivation(?ConnectionInterface $con = null): bool
     {
         if (!$this->getConfigValue('is_initialized', false)) {
             $database = new Database($con);
@@ -55,7 +55,7 @@ class TheliaLibrary extends BaseModule
      * @param $currentVersion
      * @param $newVersion
      */
-    public function update($currentVersion, $newVersion, ConnectionInterface $con = null): void
+    public function update($currentVersion, $newVersion, ?ConnectionInterface $con = null): void
     {
         if (file_exists(__DIR__.DS.'Config'.DS.'update')) {
             $finder = Finder::create()
