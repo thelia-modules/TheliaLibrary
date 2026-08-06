@@ -12,6 +12,14 @@ DROP TABLE IF EXISTS `library_image`;
 CREATE TABLE `library_image`
 (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `file_name` VARCHAR(255),
+    `mime_type` VARCHAR(100),
+    `width` INTEGER,
+    `height` INTEGER,
+    `file_size` INTEGER,
+    `decorative` TINYINT DEFAULT 0,
+    `created_at` TIMESTAMP NULL,
+    `updated_at` TIMESTAMP NULL,
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB;
 
@@ -90,7 +98,8 @@ CREATE TABLE `library_image_i18n`
     `id` INTEGER NOT NULL,
     `locale` VARCHAR(5) DEFAULT 'en_US' NOT NULL,
     `title` VARCHAR(255),
-    `file_name` VARCHAR(255),
+    `alt` VARCHAR(255),
+    `caption` TEXT,
     PRIMARY KEY (`id`,`locale`),
     CONSTRAINT `library_image_i18n_fk_0228d9`
         FOREIGN KEY (`id`)

@@ -12,14 +12,12 @@
 
 namespace TheliaLibrary\Service;
 
-use Propel\Runtime\ActiveQuery\Criteria;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Thelia\Core\Translation\Translator;
 use TheliaLibrary\Model\LibraryImage;
-use TheliaLibrary\Model\LibraryImageI18nQuery;
 use TheliaLibrary\Model\LibraryImageQuery;
 use TheliaLibrary\TheliaLibrary;
 
@@ -78,15 +76,8 @@ class LibraryImageService
             return false;
         }
 
-        $imageFiles = LibraryImageI18nQuery::create()->filterById($imageId)
-            ->find();
-
-        foreach ($imageFiles as $imageFile) {
-            if (null === $imageFile->getFileName()) {
-                continue;
-            }
-            $fileSystem = new Filesystem();
-            $fileSystem->remove(TheliaLibrary::getImageDirectory().$imageFile->getFileName());
+        if (null !== $image->getFileName()) {
+            (new Filesystem())->remove(TheliaLibrary::getImageDirectory().$image->getFileName());
         }
 
         $image->delete();
@@ -140,39 +131,53 @@ class LibraryImageService
         }
 
         $image->setLocale($locale);
-        $imageName = null;
 
         if (null !== $file) {
             $fileName = method_exists($file, 'getClientOriginalName') ? $file->getClientOriginalName() : $file->getFilename();
 
-            // Remove old file if already exist for this locale
+            // Remove the file being replaced
             if (null !== $image->getFileName()) {
                 $fileSystem = new Filesystem();
                 $fileSystem->remove(TheliaLibrary::getImageDirectory().$image->getFileName());
             }
             $imageName = bin2hex(random_bytes(5)).'_'.$fileName;
-            $file->move(TheliaLibrary::getImageDirectory(), $imageName);
+            $movedFile = $file->move(TheliaLibrary::getImageDirectory(), $imageName);
+
             if (null === $title && null === $image->getTitle()) {
                 $title = $fileName;
             }
-        }
 
-        if (null === $imageName && null !== $imageId) {
-            $i18nWithFilename = LibraryImageI18nQuery::create()
-                ->filterById($imageId)
-                ->filterByFileName(null, Criteria::ISNOTNULL)
-                ->findOne();
-
-            $imageName = $i18nWithFilename?->getFileName();
+            $image->setFileName($imageName);
+            $this->describeFile($image, $movedFile);
         }
 
         if (null != $title) {
             $image->setTitle($title);
         }
 
-        $image->setFileName($imageName);
         $image->save();
 
         return $image;
+    }
+
+    /**
+     * Records what the stored file is, so listings can show its weight, size
+     * and format without opening every file on disk.
+     */
+    protected function describeFile(LibraryImage $image, File $file): void
+    {
+        $image
+            ->setMimeType($file->getMimeType())
+            ->setFileSize($file->getSize() ?: null);
+
+        $dimensions = @getimagesize($file->getPathname());
+
+        if (false === $dimensions) {
+            return;
+        }
+
+        $image
+            ->setWidth($dimensions[0])
+            ->setHeight($dimensions[1]);
     }
 }

@@ -24,7 +24,6 @@ use Propel\Runtime\ActiveQuery\ModelCriteria;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Thelia\Model\ConfigQuery;
-use Thelia\Model\Lang;
 use Thelia\Model\ProductImageQuery;
 use TheliaLibrary\Model\LibraryImage;
 use TheliaLibrary\Model\LibraryImageQuery;
@@ -267,27 +266,17 @@ class ImageService
         return $image;
     }
 
+    /**
+     * The stored file name of an image.
+     *
+     * Kept as a method although it now reads a plain column: the name used to
+     * live in the translation table and be resolved through the session
+     * language, so callers rely on this indirection.
+     */
     public function getImageFileName(
         ?LibraryImage $image = null,
     ) {
-        if (null == $image) {
-            return null;
-        }
-
-        $locale = $this->requestStack?->getCurrentRequest()?->getSession()?->getLang()->getLocale();
-
-        if (null !== $locale) {
-            $image->setLocale($locale);
-        }
-
-        $fileName = $image->getFileName();
-
-        if (null === $fileName) {
-            $fileName = $image->setLocale(Lang::getDefaultLanguage()->getLocale())->getFileName() ?? null;
-            $image->setLocale($locale);
-        }
-
-        return $fileName;
+        return $image?->getFileName();
     }
 
     public function getImageModel($identifier, $type = 'library', $imageId = null)

@@ -95,7 +95,6 @@ class ImageMigrateCommand extends ContainerAwareCommand
                     $image->getPosition()
                 );
                 $libraryImage = $itemImage->getLibraryImage();
-                $libraryFilePath = $libraryImage->getFileName();
 
                 foreach ($langs as $lang) {
                     $image->setLocale($lang->getLocale());
@@ -106,7 +105,6 @@ class ImageMigrateCommand extends ContainerAwareCommand
 
                     $libraryImage->setLocale($lang->getLocale())
                         ->setTitle($image->getTitle())
-                        ->setFileName($libraryFilePath)
                         ->save();
                 }
                 $progressBar->advance();

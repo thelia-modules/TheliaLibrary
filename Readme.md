@@ -72,3 +72,25 @@ Here’s the exemple :
   placeholder={encore_manifest_file file="dist/images/placeholder.webp"}
 }
 ```
+
+## Upgrading to 1.4.0
+
+`library_image` now carries what the stored file is — `file_name`, `mime_type`,
+`width`, `height`, `file_size` — plus a `decorative` flag, and `created_at` /
+`updated_at`. Each translation gains an `alt` and a `caption`.
+
+`file_name` moved from `library_image_i18n` to `library_image`: a stored file is
+not a translation of anything, and reading it through the visitor locale
+returned nothing for an image uploaded in another language. Names already stored
+are carried over when the module updates. The old column is left in place, so
+the migration can be checked and re-run if it was interrupted; nothing reads it
+any more and it can be dropped once you are satisfied:
+
+```sql
+ALTER TABLE `library_image_i18n` DROP COLUMN `file_name`;
+```
+
+Code that read the name through a locale — `$image->setLocale($x)->getFileName()`
+— keeps working and now returns the same value for every locale. Code that
+queried `LibraryImageI18nQuery::filterByFileName()` has to read
+`library_image.file_name` instead.

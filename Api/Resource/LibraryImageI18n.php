@@ -28,9 +28,17 @@ class LibraryImageI18n extends I18n
 
     #[Groups([
         LibraryImage::GROUP_ADMIN_READ,
+        LibraryImage::GROUP_ADMIN_WRITE,
         LibraryImage::GROUP_FRONT_READ,
     ])]
-    protected ?string $fileName = null;
+    protected ?string $alt = null;
+
+    #[Groups([
+        LibraryImage::GROUP_ADMIN_READ,
+        LibraryImage::GROUP_ADMIN_WRITE,
+        LibraryImage::GROUP_FRONT_READ,
+    ])]
+    protected ?string $caption = null;
 
     public function getTitle(): ?string
     {
@@ -44,14 +52,26 @@ class LibraryImageI18n extends I18n
         return $this;
     }
 
-    public function getFileName(): ?string
+    public function getAlt(): ?string
     {
-        return $this->fileName;
+        return $this->alt;
     }
 
-    public function setFileName(?string $fileName): self
+    public function setAlt(?string $alt): self
     {
-        $this->fileName = $fileName;
+        $this->alt = $alt;
+
+        return $this;
+    }
+
+    public function getCaption(): ?string
+    {
+        return $this->caption;
+    }
+
+    public function setCaption(?string $caption): self
+    {
+        $this->caption = $caption;
 
         return $this;
     }

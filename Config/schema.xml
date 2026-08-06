@@ -5,11 +5,24 @@
 
   <table name="library_image" namespace="TheliaLibrary\Model">
     <column name="id" primaryKey="true" required="true" type="INTEGER" autoIncrement="true"/>
-    <column name="title" type="VARCHAR" />
+    <!-- A stored file is the same in every language: file_name belongs to the
+         image, not to a translation of it. -->
     <column name="file_name" type="VARCHAR" />
+    <column name="mime_type" type="VARCHAR" size="100" />
+    <column name="width" type="INTEGER" />
+    <column name="height" type="INTEGER" />
+    <column name="file_size" type="INTEGER" />
+    <!-- A decorative image carries no information and must be published with an
+         empty alt attribute (WCAG 1.1.1); the distinction from "not described
+         yet" cannot be made from an empty alt alone. -->
+    <column name="decorative" type="TINYINT" defaultValue="0" />
+    <column name="title" type="VARCHAR" />
+    <column name="alt" type="VARCHAR" />
+    <column name="caption" type="LONGVARCHAR" />
     <behavior name="i18n">
-      <parameter name="i18n_columns" value="title, file_name" />
+      <parameter name="i18n_columns" value="title, alt, caption" />
     </behavior>
+    <behavior name="timestampable" />
   </table>
 
   <table name="library_item_image" namespace="TheliaLibrary\Model">

@@ -16,7 +16,6 @@ namespace TheliaLibrary\Controller\Admin\Support;
 
 use Thelia\Model\Lang;
 use TheliaLibrary\Model\LibraryImage;
-use TheliaLibrary\Model\LibraryImageI18nQuery;
 use TheliaLibrary\Model\LibraryImageTag as LibraryImageTagModel;
 use TheliaLibrary\Model\LibraryImageTagQuery;
 use TheliaLibrary\Model\LibraryItemImage as LibraryItemImageModel;
@@ -43,22 +42,19 @@ final class LegacyLibraryImageSerializer
         $resolvedLocale = $locale ?? Lang::getDefaultLanguage()->getLocale();
         $image->setLocale($resolvedLocale);
 
-        $title = $image->getTitle();
         $fileName = $image->getFileName();
-
-        if (null === $fileName) {
-            $fallbackI18n = LibraryImageI18nQuery::create()
-                ->filterById($image->getId())
-                ->filterByFileName(null, \Propel\Runtime\ActiveQuery\Criteria::ISNOTNULL)
-                ->findOne();
-
-            $fileName = $fallbackI18n?->getFileName();
-        }
 
         return [
             'id' => $image->getId(),
-            'title' => $title,
+            'title' => $image->getTitle(),
+            'alt' => $image->getAlt(),
+            'caption' => $image->getCaption(),
+            'decorative' => (bool) $image->getDecorative(),
             'fileName' => $fileName,
+            'mimeType' => $image->getMimeType(),
+            'width' => $image->getWidth(),
+            'height' => $image->getHeight(),
+            'fileSize' => $image->getFileSize(),
             'url' => self::computeUrl($image->getId(), $fileName, $width, $height),
             'tags' => self::loadTags((int) $image->getId(), $resolvedLocale),
         ];
