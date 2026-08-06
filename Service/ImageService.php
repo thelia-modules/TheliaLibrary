@@ -305,8 +305,16 @@ class ImageService
             throw new HttpException(404, 'Image not found');
         }
         $fileName = $this->getImageFileName($imageModel);
+        $path = TheliaLibrary::getImageDirectory().$fileName;
 
-        return $this->getImagineInstance()->open(TheliaLibrary::getImageDirectory().$fileName);
+        // A row whose file was removed from disk is a missing image, not a
+        // broken server: Imagine would otherwise raise a RuntimeException and
+        // the request would answer 500.
+        if (null === $fileName || !is_file($path)) {
+            throw new HttpException(404, 'Image not found');
+        }
+
+        return $this->getImagineInstance()->open($path);
     }
 
     public function getImagineInstance()
