@@ -80,6 +80,8 @@ class LibraryImageService
             (new Filesystem())->remove(TheliaLibrary::getImageDirectory().$image->getFileName());
         }
 
+        $this->discardRenderedVariants((int) $image->getId());
+
         $image->delete();
 
         return true;
@@ -149,6 +151,13 @@ class LibraryImageService
 
             $image->setFileName($imageName);
             $this->describeFile($image, $movedFile);
+
+            // Resized and converted copies are addressed by image id, not by
+            // file name: left in place they keep serving the replaced picture
+            // on every page that already points at them.
+            if (null !== $imageId) {
+                $this->discardRenderedVariants((int) $imageId);
+            }
         }
 
         if (null != $title) {
@@ -158,6 +167,20 @@ class LibraryImageService
         $image->save();
 
         return $image;
+    }
+
+    /**
+     * Drops the copies rendered on demand under `web/image-library/{id}`.
+     *
+     * They are rebuilt on the next request, from whatever the file is now.
+     */
+    protected function discardRenderedVariants(int $imageId): void
+    {
+        $directory = THELIA_WEB_DIR.'image-library'.DS.$imageId;
+
+        if (is_dir($directory)) {
+            (new Filesystem())->remove($directory);
+        }
     }
 
     /**
