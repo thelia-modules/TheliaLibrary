@@ -68,12 +68,24 @@ class ImagePluginService
         if (isset($htmlAttrs)) {
             foreach ($htmlAttrs as $attr => $val) {
                 if ($val) {
-                    $attrs = $attrs.' '.$attr.'="'.$val.'"';
+                    // Values reach us from back-office content (image titles, captions):
+                    // a raw quote would close the attribute and let an onerror= through.
+                    $attrs = $attrs.' '.$this->escapeAttrName($attr).'="'.$this->escapeAttrValue($val).'"';
                 }
             }
         }
 
         return $attrs;
+    }
+
+    private function escapeAttrName(string $attr): string
+    {
+        return preg_replace('/[^A-Za-z0-9_:.-]/', '', $attr);
+    }
+
+    private function escapeAttrValue(mixed $val): string
+    {
+        return htmlspecialchars((string) $val, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
     private function concatStyle(?array $htmlStyle): string
@@ -95,19 +107,23 @@ class ImagePluginService
     {
         $imgStyle = isset($params['img_style']) ? $this->concatStyle($params['img_style']) : '';
 
-        $imgAttrs = $this->concatHtmlAttrs(array_replace(
-            $params['img_attrs'] ?? [],
-            ['alt' => $params['alt'] ?? ''],
-            ['title' => $params['alt'] ?? ''],
-            ['style' => $imgStyle]
-        ));
+        // An alt or title explicitly passed in img_attrs wins over the computed
+        // fallback, otherwise every image ends up labelled with the store name.
+        $attrs = array_replace(
+            ['alt' => $params['alt'] ?? '', 'title' => $params['alt'] ?? ''],
+            $params['img_attrs'] ?? []
+        );
 
-        return '<img src="'.$image['url'].'" '.$imgAttrs.'/>';
+        if ('' !== $imgStyle) {
+            $attrs['style'] = $imgStyle;
+        }
+
+        return '<img src="'.$this->escapeAttrValue($image['url']).'" '.$this->concatHtmlAttrs($attrs).'/>';
     }
 
     private function createSourceTag(array $image): string
     {
-        return '<source srcset="'.$image['url'].'" media="(min-width:'.$image['breakpoint'].')"/>';
+        return '<source srcset="'.$this->escapeAttrValue($image['url']).'" media="(min-width:'.$this->escapeAttrValue($image['breakpoint']).')"/>';
     }
 
     private function needsWrapper(array $params, array $sources): bool
