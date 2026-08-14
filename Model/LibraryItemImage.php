@@ -40,7 +40,7 @@ class LibraryItemImage extends BaseLibraryItemImage
     /**
      * {@inheritDoc}
      */
-    public function preInsert(ConnectionInterface $con = null): bool
+    public function preInsert(?ConnectionInterface $con = null): bool
     {
         $this->setPosition($this->getNextPosition());
 
@@ -49,7 +49,7 @@ class LibraryItemImage extends BaseLibraryItemImage
         return true;
     }
 
-    public function preDelete(ConnectionInterface $con = null): bool
+    public function preDelete(?ConnectionInterface $con = null): bool
     {
         parent::preDelete($con);
 
