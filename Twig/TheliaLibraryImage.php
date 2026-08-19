@@ -31,7 +31,7 @@ class TheliaLibraryImage
     {
     }
 
-    public function getRenderHtmlImages(): string
+    public function getRenderHtmlImages(): ?string
     {
         return $this->imagePluginService->getImages($this->params);
     }

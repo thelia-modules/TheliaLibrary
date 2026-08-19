@@ -12,9 +12,25 @@ class ImagePluginService
     {
     }
 
-    public function getImages(array $params): string
+    public function getImages(array $params): ?string
     {
         $imagesData = $this->imageService->getImages($params);
+
+        if ($params['no_placeholder'] ?? false) {
+            $hasUrl = false;
+            foreach ($imagesData as $image) {
+                foreach ($image['sources'] ?? [] as $source) {
+                    if (!empty($source['url'])) {
+                        $hasUrl = true;
+                        break 2;
+                    }
+                }
+            }
+
+            if (!$hasUrl) {
+                return null;
+            }
+        }
 
         $processedImgTag = '';
 
