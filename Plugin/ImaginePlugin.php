@@ -52,7 +52,7 @@ class ImaginePlugin extends AbstractSmartyPlugin
         $template->assign('images', $images);
     }
 
-    public function getImages(array $params): string
+    public function getImages(array $params): ?string
     {
         return $this->imagePluginService->getImages($params);
     }
