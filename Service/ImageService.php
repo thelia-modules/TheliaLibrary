@@ -20,6 +20,7 @@ use Imagine\Image\Palette\RGB;
 use Imagine\Image\Point;
 use Imagine\Imagick\Imagine as ImagickImagine;
 use Liip\ImagineBundle\Imagine\Cache\CacheManager;
+use Propel\Runtime\ActiveQuery\Criteria;
 use Propel\Runtime\ActiveQuery\ModelCriteria;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -36,8 +37,46 @@ class ImageService
     public const LIBRARY = 'library';
     public const PAGE = 'page';
 
+    /**
+     * Image rows a listing read ahead of its cards, by source type then image id.
+     * See preloadImages().
+     *
+     * @var array<string, array<int, object>>
+     */
+    private array $preloadedImages = [];
+
     public function __construct(private RequestStack $requestStack, private readonly CacheManager $cacheManager)
     {
+    }
+
+    /**
+     * Reads the given images of one source type in a single query, translations
+     * included, so the getImages() calls that follow for each of them cost no query.
+     *
+     * A listing that renders one visual per card otherwise pays two queries per card —
+     * the image row, then its translation — the very N+1 this spares.
+     *
+     * @param array<int, int|string> $imageIds
+     */
+    public function preloadImages(string $sourceType, array $imageIds): void
+    {
+        $missing = [];
+        foreach (array_unique(array_filter($imageIds)) as $imageId) {
+            if (!isset($this->preloadedImages[$sourceType][(int) $imageId])) {
+                $missing[] = (int) $imageId;
+            }
+        }
+
+        if ([] === $missing) {
+            return;
+        }
+
+        $query = $this->createQuery($sourceType)->filterById($missing, Criteria::IN);
+        $this->joinTranslations($query);
+
+        foreach ($query->find() as $image) {
+            $this->preloadedImages[$sourceType][(int) $image->getId()] = $image;
+        }
     }
 
     public function getUrlForImage(
@@ -349,6 +388,18 @@ class ImageService
         $position = $params['position'] ?? null;
         $visible = $params['visible'] ?? 1;
 
+        // One image asked by id, with no positional narrowing: a preloaded row answers it.
+        if (null !== $imageId && null === $position && !isset($params['offset'])
+            && isset($this->preloadedImages[$sourceType][(int) $imageId])) {
+            $image = $this->preloadedImages[$sourceType][(int) $imageId];
+
+            if (1 === $visible && !$image->getVisible()) {
+                return [];
+            }
+
+            return [$this->imageData($image, $sourceType)];
+        }
+
         /** @var ProductImageQuery $query */
         $query = $this->createSearchQuery($sourceType, $sourceId, $imageId);
 
@@ -365,30 +416,54 @@ class ImageService
             $query->offset($params['offset']);
         }
 
-        $locale = $this->requestStack?->getCurrentRequest()?->getSession()?->getLang()->getLocale();
+        // Translations come with the rows instead of one lazy query per image.
+        $this->joinTranslations($query);
 
         $query->orderByPosition();
         $images = [];
         foreach ($query as $image) {
-            $image->setlocale($locale);
-            $images[] = [
-                'path' => $image?->getFile() ? '/'.$sourceType.'/'.$image?->getFile() : '',
-                'title' => $image?->getTitle(),
-                'description' => $image?->getDescription(),
-                'chapo' => $image?->getChapo(),
-                'postscriptum' => $image?->getPostscriptum(),
-                'id' => $image?->getId(),
-            ];
+            $images[] = $this->imageData($image, $sourceType);
         }
 
         return $images;
+    }
+
+    /**
+     * @param object $image a xxxImage model: every source type shares the same accessors
+     */
+    private function imageData(object $image, string $sourceType): array
+    {
+        $image->setLocale($this->currentLocale());
+
+        return [
+            'path' => $image->getFile() ? '/'.$sourceType.'/'.$image->getFile() : '',
+            'title' => $image->getTitle(),
+            'description' => $image->getDescription(),
+            'chapo' => $image->getChapo(),
+            'postscriptum' => $image->getPostscriptum(),
+            'id' => $image->getId(),
+        ];
+    }
+
+    private function joinTranslations(ModelCriteria $query): void
+    {
+        $locale = $this->currentLocale();
+
+        if (null !== $locale && method_exists($query, 'joinWithI18n')) {
+            $query->joinWithI18n($locale);
+        }
+    }
+
+    private function currentLocale(): ?string
+    {
+        return $this->requestStack?->getCurrentRequest()?->getSession()?->getLang()->getLocale();
     }
 
     private function camelToSnake(string $string): string {
         return strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $string));
     }
 
-    private function createSearchQuery($source, $sourceId, $imageId = null)
+    private function createQuery(string $source): ModelCriteria
     {
         $queryClass = 'Thelia\\Model\\'.ucfirst($source).'ImageQuery';
         if (!class_exists($queryClass)) {
@@ -398,10 +473,18 @@ class ImageService
             $queryClass = $tableMap->getClassName().'Query';
         }
 
-        $filterMethod = \sprintf('filterBy%sId', $imageId ? '' : $source);
         // xxxImageQuery::create()
         $method = new \ReflectionMethod($queryClass, 'create');
-        $search = $method->invoke(null); // Static !
+
+        return $method->invoke(null); // Static !
+    }
+
+    private function createSearchQuery($source, $sourceId, $imageId = null)
+    {
+        $search = $this->createQuery($source);
+        $queryClass = $search::class;
+
+        $filterMethod = \sprintf('filterBy%sId', $imageId ? '' : $source);
 
         // $query->filterByXXX(id)
         $method = new \ReflectionMethod($queryClass, $filterMethod);
