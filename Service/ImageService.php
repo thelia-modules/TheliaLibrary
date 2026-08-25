@@ -45,6 +45,14 @@ class ImageService
      */
     private array $preloadedImages = [];
 
+    /**
+     * The same rows grouped by the item they belong to, in position order.
+     * See preloadSourceImages().
+     *
+     * @var array<string, array<int, list<object>>>
+     */
+    private array $preloadedBySource = [];
+
     public function __construct(private RequestStack $requestStack, private readonly CacheManager $cacheManager)
     {
     }
@@ -75,6 +83,46 @@ class ImageService
         $this->joinTranslations($query);
 
         foreach ($query->find() as $image) {
+            $this->preloadedImages[$sourceType][(int) $image->getId()] = $image;
+        }
+    }
+
+    /**
+     * Same as preloadImages(), keyed by the owning item rather than the image: for a menu
+     * or a grid of categories that shows the first visual of each, one query for the whole
+     * set instead of one per tile. The getImages() calls that ask by `source_id` — with no
+     * `img_id`, `position` or `offset` — are then answered from these rows, in position order,
+     * with the visibility rule and `limit` applied as the query would.
+     *
+     * @param array<int, int|string> $sourceIds
+     */
+    public function preloadSourceImages(string $sourceType, array $sourceIds): void
+    {
+        $missing = [];
+        foreach (array_unique(array_filter($sourceIds)) as $sourceId) {
+            if (!isset($this->preloadedBySource[$sourceType][(int) $sourceId])) {
+                $missing[] = (int) $sourceId;
+            }
+        }
+
+        if ([] === $missing) {
+            return;
+        }
+
+        // Seed every requested id so an item without image is not queried again.
+        foreach ($missing as $sourceId) {
+            $this->preloadedBySource[$sourceType][$sourceId] = [];
+        }
+
+        $query = $this->createQuery($sourceType);
+        $filterMethod = \sprintf('filterBy%sId', ucfirst($sourceType));
+        $query->$filterMethod($missing, Criteria::IN);
+        $this->joinTranslations($query);
+        $query->orderByPosition();
+
+        $getSourceId = \sprintf('get%sId', ucfirst($sourceType));
+        foreach ($query->find() as $image) {
+            $this->preloadedBySource[$sourceType][(int) $image->$getSourceId()][] = $image;
             $this->preloadedImages[$sourceType][(int) $image->getId()] = $image;
         }
     }
@@ -398,6 +446,21 @@ class ImageService
             }
 
             return [$this->imageData($image, $sourceType)];
+        }
+
+        // The images of one item, with no positional narrowing: preloaded rows answer it too.
+        if (null === $imageId && null !== $sourceId && null === $position && !isset($params['offset'])
+            && isset($this->preloadedBySource[$sourceType][(int) $sourceId])) {
+            $rows = $this->preloadedBySource[$sourceType][(int) $sourceId];
+
+            if (1 === $visible) {
+                $rows = array_values(array_filter($rows, static fn (object $row): bool => (bool) $row->getVisible()));
+            }
+            if (isset($params['limit'])) {
+                $rows = \array_slice($rows, 0, (int) $params['limit']);
+            }
+
+            return array_map(fn (object $row): array => $this->imageData($row, $sourceType), $rows);
         }
 
         /** @var ProductImageQuery $query */
