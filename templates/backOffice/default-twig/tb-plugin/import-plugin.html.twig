@@ -1,1 +1,3 @@
-<script src="/assets/backOffice/default/TheliaLibrary/tb-plugin/vendor/index.global.js"></script>
+{# module_asset() publishes the file from the module on first use: a hard-coded URL is only served
+   when something else already copied the plugin into public/assets. #}
+<script src="{{ module_asset('TheliaLibrary', 'tb-plugin/vendor/index.global.js') }}"></script>
