@@ -26,7 +26,7 @@ use Thelia\Api\Resource\ResourceAddonTrait;
 use TheliaLibrary\Api\Resource\LibraryImage;
 use TheliaLibrary\Api\Resource\LibraryItemImage;
 use TheliaLibrary\Model\LibraryItemImage as LibraryItemImageModel;
-use TheliaLibrary\Model\LibraryItemImageQuery;
+use TheliaLibrary\Service\LibraryItemImageMemo;
 
 /**
  * Exposes the polymorphic `library_item_image` rows attached to a `Product`
@@ -36,7 +36,7 @@ use TheliaLibrary\Model\LibraryItemImageQuery;
  * The relation is polymorphic (`item_type` / `item_id`) and not declared as a
  * Propel foreign key, so the default JOIN-based `extendQuery` cannot apply:
  * the addon overrides it as a no-op and resolves the rows on demand inside
- * `buildFromModel()`.
+ * `buildFromModel()`, through a memo shared by every addon built in the request.
  */
 class ProductLibraryImagesAddon implements ResourceAddonInterface
 {
@@ -74,15 +74,9 @@ class ProductLibraryImagesAddon implements ResourceAddonInterface
             return $this;
         }
 
-        $itemImageModels = LibraryItemImageQuery::create()
-            ->filterByItemType('product')
-            ->filterByItemId($productId)
-            ->orderByPosition()
-            ->find();
-
         $this->libraryImages = array_map(
             static fn (LibraryItemImageModel $itemImageModel): LibraryItemImage => self::mapItemImage($itemImageModel),
-            iterator_to_array($itemImageModels),
+            LibraryItemImageMemo::rowsForItem('product', $productId),
         );
 
         return $this;

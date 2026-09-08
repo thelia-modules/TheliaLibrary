@@ -24,6 +24,7 @@ use Propel\Runtime\ActiveQuery\Criteria;
 use Propel\Runtime\ActiveQuery\ModelCriteria;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Contracts\Service\ResetInterface;
 use Thelia\Model\ConfigQuery;
 use Thelia\Model\ProductImageQuery;
 use TheliaLibrary\Model\LibraryImage;
@@ -31,7 +32,7 @@ use TheliaLibrary\Model\LibraryImageQuery;
 use TheliaLibrary\TheliaLibrary;
 use TheliaMain\PropelResolver;
 
-class ImageService
+class ImageService implements ResetInterface
 {
     public const MAX_ALLOWED_SIZE_FACTOR = 2;
     public const LIBRARY = 'library';
@@ -55,6 +56,16 @@ class ImageService
 
     public function __construct(private RequestStack $requestStack, private readonly CacheManager $cacheManager)
     {
+    }
+
+    /**
+     * The preloaded rows belong to the request that read them ahead: cleared between
+     * requests and console commands so a long-running worker never serves stale images.
+     */
+    public function reset(): void
+    {
+        $this->preloadedImages = [];
+        $this->preloadedBySource = [];
     }
 
     /**
