@@ -112,6 +112,9 @@ class LibraryImage extends AbstractTranslatableResource
             'format' => 'binary',
         ],
     )]
+    // Declares the accepted formats in the generated documentation. What is
+    // actually stored is decided from the content of the file by
+    // LibraryImageFileNamer, which every upload goes through.
     #[Assert\Image(mimeTypes: [
         'image/bmp',
         'image/gif',

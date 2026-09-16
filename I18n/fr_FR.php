@@ -11,5 +11,5 @@
  */
 
 return [
-    // 'an english string' => 'La traduction française de la chaine',
+    'Only JPEG, PNG, GIF, WebP and BMP images can be stored in the library.' => 'Seules les images JPEG, PNG, GIF, WebP et BMP peuvent être enregistrées dans la médiathèque.',
 ];

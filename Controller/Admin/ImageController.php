@@ -18,9 +18,12 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use Thelia\Controller\Admin\BaseAdminController;
 use Thelia\Core\HttpFoundation\Request;
+use Thelia\Core\Translation\Translator;
 use Thelia\Model\Lang;
 use TheliaLibrary\Controller\Admin\Support\LegacyLibraryImageSerializer;
+use TheliaLibrary\Exception\UnsupportedLibraryImageException;
 use TheliaLibrary\Service\LibraryImageService;
+use TheliaLibrary\TheliaLibrary;
 
 /**
  * Backwards-compatibility shim for the legacy `/open_api/library/image`
@@ -46,11 +49,15 @@ final class ImageController extends BaseAdminController
 
         $locale = $this->resolveLocale($request);
 
-        $image = $libraryImageService->createImage(
-            file: $file,
-            title: self::asString($request->request->get('title')),
-            locale: $locale,
-        );
+        try {
+            $image = $libraryImageService->createImage(
+                file: $file,
+                title: self::asString($request->request->get('title')),
+                locale: $locale,
+            );
+        } catch (UnsupportedLibraryImageException) {
+            return $this->legacyJson(['error' => self::unsupportedImageMessage()], 415);
+        }
 
         return $this->legacyJson(LegacyLibraryImageSerializer::imageToArray($image, $locale));
     }
@@ -63,12 +70,16 @@ final class ImageController extends BaseAdminController
     ): JsonResponse {
         $locale = $this->resolveLocale($request);
 
-        $image = $libraryImageService->updateImage(
-            imageId: $imageId,
-            file: $request->files->get('image'),
-            title: self::asString($request->request->get('title')),
-            locale: $locale,
-        );
+        try {
+            $image = $libraryImageService->updateImage(
+                imageId: $imageId,
+                file: $request->files->get('image'),
+                title: self::asString($request->request->get('title')),
+                locale: $locale,
+            );
+        } catch (UnsupportedLibraryImageException) {
+            return $this->legacyJson(['error' => self::unsupportedImageMessage()], 415);
+        }
 
         return $this->legacyJson(LegacyLibraryImageSerializer::imageToArray($image, $locale));
     }
@@ -98,6 +109,15 @@ final class ImageController extends BaseAdminController
         }
 
         return Lang::getDefaultLanguage()->getLocale();
+    }
+
+    private static function unsupportedImageMessage(): string
+    {
+        return Translator::getInstance()->trans(
+            'Only JPEG, PNG, GIF, WebP and BMP images can be stored in the library.',
+            [],
+            TheliaLibrary::DOMAIN_NAME
+        );
     }
 
     private static function asString(mixed $value): ?string

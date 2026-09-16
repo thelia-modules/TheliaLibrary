@@ -32,14 +32,18 @@ class LibraryImageService
 
     protected ImageService $imageService;
 
+    protected LibraryImageFileNamer $fileNamer;
+
     public function __construct(
         EventDispatcherInterface $eventDispatcher,
         RequestStack $requestStack,
-        ImageService $imageService
+        ImageService $imageService,
+        LibraryImageFileNamer $fileNamer
     ) {
         $this->eventDispatcher = $eventDispatcher;
         $this->requestStack = $requestStack;
         $this->imageService = $imageService;
+        $this->fileNamer = $fileNamer;
     }
 
     /**
@@ -135,18 +139,23 @@ class LibraryImageService
         $image->setLocale($locale);
 
         if (null !== $file) {
-            $fileName = method_exists($file, 'getClientOriginalName') ? $file->getClientOriginalName() : $file->getFilename();
+            $submittedName = method_exists($file, 'getClientOriginalName') ? $file->getClientOriginalName() : $file->getFilename();
+
+            // Read what the file is before anything is written or removed: a
+            // submission that is not stored must leave the existing image and
+            // the destination directory exactly as they were.
+            $imageName = $this->fileNamer->generateFileName($file);
 
             // Remove the file being replaced
             if (null !== $image->getFileName()) {
                 $fileSystem = new Filesystem();
                 $fileSystem->remove(TheliaLibrary::getImageDirectory().$image->getFileName());
             }
-            $imageName = bin2hex(random_bytes(5)).'_'.$fileName;
+
             $movedFile = $file->move(TheliaLibrary::getImageDirectory(), $imageName);
 
             if (null === $title && null === $image->getTitle()) {
-                $title = $fileName;
+                $title = $submittedName;
             }
 
             $image->setFileName($imageName);
