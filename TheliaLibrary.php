@@ -47,6 +47,8 @@ class TheliaLibrary extends BaseModule
             $fs->copy(THELIA_MODULE_DIR.'TheliaLibrary/Config/liip_imagine_thelia.yaml.example', self::IMAGINE_CONFIG_FILE);
         }
 
+        self::protectImageDirectory($fs);
+
         return true;
     }
 
@@ -81,6 +83,31 @@ class TheliaLibrary extends BaseModule
         if (!$fs->exists(self::IMAGINE_CONFIG_FILE)) {
             $fs->copy(THELIA_MODULE_DIR.'TheliaLibrary/Config/liip_imagine_thelia.yaml.example', self::IMAGINE_CONFIG_FILE);
         }
+
+        self::protectImageDirectory($fs);
+    }
+
+    /**
+     * Drops an Apache directory configuration next to the stored pictures,
+     * so that the directory is only ever read as static files.
+     *
+     * The image directory is configurable and can be moved under a web root;
+     * nginx has no per-directory configuration, so its equivalent rule is
+     * documented in the Readme instead.
+     */
+    private static function protectImageDirectory(Filesystem $fs): void
+    {
+        $directory = self::getImageDirectory();
+
+        if (!$fs->exists($directory)) {
+            $fs->mkdir($directory, 0755);
+        }
+
+        $fs->copy(
+            THELIA_MODULE_DIR.'TheliaLibrary'.DS.'Config'.DS.'storage'.DS.'images.htaccess',
+            rtrim($directory, '/'.DS).DS.'.htaccess',
+            true
+        );
     }
 
     /**
