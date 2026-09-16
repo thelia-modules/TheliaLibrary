@@ -8,9 +8,15 @@
     "liip/imagine-bundle": "^2.9"
   },
   "require-dev": {
-    "roave/security-advisories": "dev-latest"
+    "roave/security-advisories": "dev-latest",
+    "phpunit/phpunit": "^11.5"
   },
   "extra": {
     "installer-name": "TheliaLibrary"
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "TheliaLibrary\\Tests\\": "Tests/"
+    }
   }
 }
