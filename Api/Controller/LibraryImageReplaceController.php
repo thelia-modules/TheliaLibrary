@@ -20,12 +20,16 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Attribute\AsController;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\UnsupportedMediaTypeHttpException;
 use Thelia\Api\Bridge\Propel\Service\ApiResourcePropelTransformerService;
 use Thelia\Api\Resource\PropelResourceInterface;
+use Thelia\Core\Translation\Translator;
 use Thelia\Model\Lang;
 use TheliaLibrary\Api\Resource\LibraryImage;
+use TheliaLibrary\Exception\UnsupportedLibraryImageException;
 use TheliaLibrary\Model\LibraryImageQuery;
 use TheliaLibrary\Service\LibraryImageService;
+use TheliaLibrary\TheliaLibrary;
 
 /**
  * Handles `POST /api/admin/library_images/{id}/replace` multipart replace.
@@ -60,12 +64,23 @@ final readonly class LibraryImageReplaceController
         $locale = $this->resolveLocale($request);
         $title = $request->request->get('title');
 
-        $propelModel = $this->libraryImageService->updateImage(
-            imageId: $id,
-            file: $file,
-            title: \is_string($title) && '' !== $title ? $title : null,
-            locale: $locale,
-        );
+        try {
+            $propelModel = $this->libraryImageService->updateImage(
+                imageId: $id,
+                file: $file,
+                title: \is_string($title) && '' !== $title ? $title : null,
+                locale: $locale,
+            );
+        } catch (UnsupportedLibraryImageException $exception) {
+            throw new UnsupportedMediaTypeHttpException(
+                Translator::getInstance()->trans(
+                    'Only JPEG, PNG, GIF, WebP and BMP images can be stored in the library.',
+                    [],
+                    TheliaLibrary::DOMAIN_NAME
+                ),
+                $exception
+            );
+        }
 
         /** @var Operation $operation */
         $operation = $request->attributes->get('_api_operation');

@@ -15,6 +15,24 @@ composer require thelia/thelia-library-module:~1.0.0
 For now this module doesn't have an interface, only an api documented on {your_website_url}/open_api/doc
 
 
+## Stored files
+
+Uploaded pictures are stored in `local/library/images` (configurable through the
+`image_directory` module configuration). The module only stores JPEG, PNG, GIF,
+WebP and BMP files: the format is read from the content of the file, the
+extension is derived from that format, and the stored name is generated, so
+neither the name nor the extension sent by the browser is reused.
+
+The module also writes an `.htaccess` in that directory at activation, so that
+Apache serves it as static files only. nginx has no per-directory configuration;
+add the equivalent to your server block if the directory is under your web root:
+
+```nginx
+location ~* ^/local/library/ {
+    location ~* \.(php[0-9]?|phtml|phar|cgi|pl|py)$ { deny all; }
+}
+```
+
 ## **Using Plugins**
 
 You can use the `getImages` and `getImagesData`  plugins. Both of them are available with Smarty and Twig. Use this plugins instead the traditional loop (in case you have to deal with smarty).
