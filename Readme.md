@@ -91,6 +91,18 @@ Here’s the exemple :
 }
 ```
 
+## Upgrading to 2.0.9
+
+The module now renders the modern image formats a shop activates, as `<picture>` sources
+beside the source-format `<img>`. A shop that activates none renders exactly what it did
+before.
+
+The formats and their encoder quality are shop settings read from the core
+(`image_formats`, `image_quality_webp`, `image_quality_avif`), so this version needs
+Thelia 3.2 or later. Variants are written on first display, next to the file they derive
+from and suffixed with the format extension, and addressed directly: no image is ever
+served through a resolve URL and a redirect.
+
 ## Upgrading to 1.4.0
 
 `library_image` now carries what the stored file is — `file_name`, `mime_type`,
