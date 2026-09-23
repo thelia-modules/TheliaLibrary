@@ -55,15 +55,32 @@ class ImagePluginService
         $data = $image['data'];
         $render = '';
 
-        foreach ($sources as $source) {
-            if ($source['breakpoint'] === "default" || count($sources) <= 1) {
+        $fallbackIndex = $this->fallbackSourceIndex($sources);
+
+        foreach ($sources as $index => $source) {
+            // The modern formats come first, so the browser takes the lightest one it
+            // reads and never looks at the rest. Each carries the same media condition as
+            // the source-format entry it precedes, so a breakpoint still selects a size
+            // before a format is chosen.
+            foreach ($source['variants'] ?? [] as $variant) {
+                $render .= $this->createSourceTag($variant, $index === $fallbackIndex ? null : $source['breakpoint']);
+            }
+
+            if ($index === $fallbackIndex) {
                 $params['alt'] = $params['alt'] ?? $data['title'] ?? ConfigQuery::read("store_name");
 
                 $render .= $this->createImgTag($source, $params);
             } else {
-                $render .= $this->createSourceTag($source);
+                $render .= $this->createSourceTag($source, $source['breakpoint']);
             }
         }
+
+        // <source> is only legal inside <picture>. A caller that asked for a <figure>
+        // still gets its <figure>, with the picture nested where the browser expects it.
+        if ($this->needsPicture($sources) && ($params['wrapper'] ?? 'picture') !== 'picture') {
+            $render = '<picture>'.$render.'</picture>';
+        }
+
         if ($this->needsWrapper($params, $sources)) {
             $wrapperAttrs = $this->concatHtmlAttrs($params['wrapper_attrs'] ?? []);
 
@@ -75,6 +92,44 @@ class ImagePluginService
         }
 
         return $render;
+    }
+
+    /**
+     * Which source carries the <img> every browser falls back to.
+     *
+     * The theme names it "default" and puts it last. A caller that names none still gets
+     * an <img>: the last source is taken, because a <picture> without one renders
+     * nothing at all.
+     */
+    private function fallbackSourceIndex(array $sources): ?int
+    {
+        if ([] === $sources) {
+            return null;
+        }
+
+        foreach ($sources as $index => $source) {
+            if (($source['breakpoint'] ?? null) === "default") {
+                return $index;
+            }
+        }
+
+        return array_key_last($sources);
+    }
+
+    /** Whether anything in this image has to be rendered as a <source>. */
+    private function needsPicture(array $sources): bool
+    {
+        if (count($sources) > 1) {
+            return true;
+        }
+
+        foreach ($sources as $source) {
+            if ([] !== ($source['variants'] ?? [])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function concatHtmlAttrs(?array $htmlAttrs): string
@@ -137,13 +192,18 @@ class ImagePluginService
         return '<img src="'.$this->escapeAttrValue($image['url']).'" '.$this->concatHtmlAttrs($attrs).'/>';
     }
 
-    private function createSourceTag(array $image): string
+    private function createSourceTag(array $image, ?string $breakpoint = null): string
     {
-        return '<source srcset="'.$this->escapeAttrValue($image['url']).'" media="(min-width:'.$this->escapeAttrValue($image['breakpoint']).')"/>';
+        $type = isset($image['mime_type']) ? ' type="'.$this->escapeAttrValue($image['mime_type']).'"' : '';
+        $media = null !== $breakpoint && "default" !== $breakpoint
+            ? ' media="(min-width:'.$this->escapeAttrValue($breakpoint).')"'
+            : '';
+
+        return '<source srcset="'.$this->escapeAttrValue($image['url']).'"'.$type.$media.'/>';
     }
 
     private function needsWrapper(array $params, array $sources): bool
     {
-        return (isset($params['wrapper']) && $params['wrapper']) || count($sources) > 1;
+        return (isset($params['wrapper']) && $params['wrapper']) || $this->needsPicture($sources);
     }
 }
