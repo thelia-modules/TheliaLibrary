@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the Thelia package.
  * http://www.thelia.net
@@ -40,8 +42,8 @@ class TheliaLibrary extends BaseModule
         }
 
         $fs = new Filesystem();
-        if (!$fs->exists(THELIA_ROOT.'local/media/images')){
-            $fs->mkdir(THELIA_ROOT.'local/media/images', 0755);
+        if (!$fs->exists(THELIA_ROOT.'local/media/images')) {
+            $fs->mkdir(THELIA_ROOT.'local/media/images', 0o755);
         }
         if (!$fs->exists(self::IMAGINE_CONFIG_FILE)) {
             $fs->copy(THELIA_MODULE_DIR.'TheliaLibrary/Config/liip_imagine_thelia.yaml.example', self::IMAGINE_CONFIG_FILE);
@@ -54,9 +56,6 @@ class TheliaLibrary extends BaseModule
 
     /**
      * Execute sql files in Config/update/ folder named with module version (ex: 1.0.1.sql).
-     *
-     * @param $currentVersion
-     * @param $newVersion
      */
     public function update($currentVersion, $newVersion, ?ConnectionInterface $con = null): void
     {
@@ -100,7 +99,7 @@ class TheliaLibrary extends BaseModule
         $directory = self::getImageDirectory();
 
         if (!$fs->exists($directory)) {
-            $fs->mkdir($directory, 0755);
+            $fs->mkdir($directory, 0o755);
         }
 
         $fs->copy(
@@ -121,7 +120,7 @@ class TheliaLibrary extends BaseModule
      */
     private function moveFileNamesOutOfTranslations(?ConnectionInterface $con = null): void
     {
-        $con = $con ?? Propel::getConnection('TheliaMain');
+        $con ??= Propel::getConnection('TheliaMain');
 
         $legacyColumn = $con->prepare(
             'SELECT COUNT(*) FROM information_schema.columns
