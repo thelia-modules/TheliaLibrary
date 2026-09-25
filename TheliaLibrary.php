@@ -21,6 +21,7 @@ use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use Thelia\Core\Install\Database;
 use Thelia\Module\BaseModule;
+use TheliaLibrary\Service\LegacyImageColumns;
 
 class TheliaLibrary extends BaseModule
 {
@@ -76,6 +77,7 @@ class TheliaLibrary extends BaseModule
             }
         }
 
+        $this->addMissingImageColumns($con);
         $this->moveFileNamesOutOfTranslations($con);
 
         $fs = new Filesystem();
@@ -107,6 +109,32 @@ class TheliaLibrary extends BaseModule
             rtrim($directory, '/'.DS).DS.'.htaccess',
             true
         );
+    }
+
+    /**
+     * Adds the 1.4.0 columns a database carried over from the Thelia 2 line still lacks: positioned
+     * on 2.0.0, it skips the 1.4.0 script, and the file names below could not be carried over.
+     */
+    private function addMissingImageColumns(?ConnectionInterface $con = null): void
+    {
+        $con ??= Propel::getConnection('TheliaMain');
+
+        $columnExists = $con->prepare(
+            'SELECT COUNT(*) FROM information_schema.columns
+             WHERE table_schema = DATABASE() AND table_name = :table AND column_name = :column'
+        );
+
+        $missing = (new LegacyImageColumns())->missingColumnStatements(
+            static function (string $table, string $column) use ($columnExists): bool {
+                $columnExists->execute(['table' => $table, 'column' => $column]);
+
+                return 0 < (int) $columnExists->fetchColumn();
+            },
+        );
+
+        foreach ($missing as $statement) {
+            $con->exec($statement);
+        }
     }
 
     /**
