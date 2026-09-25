@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the Thelia package.
  * http://www.thelia.net
@@ -19,6 +21,7 @@ use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use Thelia\Core\Install\Database;
 use Thelia\Module\BaseModule;
+use TheliaLibrary\Service\LegacyImageColumns;
 
 class TheliaLibrary extends BaseModule
 {
@@ -40,8 +43,8 @@ class TheliaLibrary extends BaseModule
         }
 
         $fs = new Filesystem();
-        if (!$fs->exists(THELIA_ROOT.'local/media/images')){
-            $fs->mkdir(THELIA_ROOT.'local/media/images', 0755);
+        if (!$fs->exists(THELIA_ROOT.'local/media/images')) {
+            $fs->mkdir(THELIA_ROOT.'local/media/images', 0o755);
         }
         if (!$fs->exists(self::IMAGINE_CONFIG_FILE)) {
             $fs->copy(THELIA_MODULE_DIR.'TheliaLibrary/Config/liip_imagine_thelia.yaml.example', self::IMAGINE_CONFIG_FILE);
@@ -54,9 +57,6 @@ class TheliaLibrary extends BaseModule
 
     /**
      * Execute sql files in Config/update/ folder named with module version (ex: 1.0.1.sql).
-     *
-     * @param $currentVersion
-     * @param $newVersion
      */
     public function update($currentVersion, $newVersion, ?ConnectionInterface $con = null): void
     {
@@ -77,6 +77,7 @@ class TheliaLibrary extends BaseModule
             }
         }
 
+        $this->addMissingImageColumns($con);
         $this->moveFileNamesOutOfTranslations($con);
 
         $fs = new Filesystem();
@@ -100,7 +101,7 @@ class TheliaLibrary extends BaseModule
         $directory = self::getImageDirectory();
 
         if (!$fs->exists($directory)) {
-            $fs->mkdir($directory, 0755);
+            $fs->mkdir($directory, 0o755);
         }
 
         $fs->copy(
@@ -108,6 +109,32 @@ class TheliaLibrary extends BaseModule
             rtrim($directory, '/'.DS).DS.'.htaccess',
             true
         );
+    }
+
+    /**
+     * Adds the 1.4.0 columns a database carried over from the Thelia 2 line still lacks: positioned
+     * on 2.0.0, it skips the 1.4.0 script, and the file names below could not be carried over.
+     */
+    private function addMissingImageColumns(?ConnectionInterface $con = null): void
+    {
+        $con ??= Propel::getConnection('TheliaMain');
+
+        $columnExists = $con->prepare(
+            'SELECT COUNT(*) FROM information_schema.columns
+             WHERE table_schema = DATABASE() AND table_name = :table AND column_name = :column'
+        );
+
+        $missing = (new LegacyImageColumns())->missingColumnStatements(
+            static function (string $table, string $column) use ($columnExists): bool {
+                $columnExists->execute(['table' => $table, 'column' => $column]);
+
+                return 0 < (int) $columnExists->fetchColumn();
+            },
+        );
+
+        foreach ($missing as $statement) {
+            $con->exec($statement);
+        }
     }
 
     /**
@@ -121,7 +148,7 @@ class TheliaLibrary extends BaseModule
      */
     private function moveFileNamesOutOfTranslations(?ConnectionInterface $con = null): void
     {
-        $con = $con ?? Propel::getConnection('TheliaMain');
+        $con ??= Propel::getConnection('TheliaMain');
 
         $legacyColumn = $con->prepare(
             'SELECT COUNT(*) FROM information_schema.columns
