@@ -54,8 +54,11 @@ class ImageService implements ResetInterface
      */
     private array $preloadedBySource = [];
 
-    public function __construct(private RequestStack $requestStack, private readonly CacheManager $cacheManager)
-    {
+    public function __construct(
+        private RequestStack $requestStack,
+        private readonly CacheManager $cacheManager,
+        private readonly ImageVariantService $variantService
+    ) {
     }
 
     /**
@@ -577,14 +580,26 @@ class ImageService implements ResetInterface
         foreach ($imagesData as $data) {
             $sources = [];
             if ($data['path']) {
+                $offersModernFormats = $this->variantService->offersModernFormats();
+
                 foreach ($filters as $breakpoint => $filter) {
-                    $url = $this->cacheManager->getBrowserPath(
-                        $data['path'],
-                        $filter
-                    );
+                    // A shop that offers nothing but the source format keeps the rendering it
+                    // has, resolve URL for a not-yet-generated image included. As soon as it
+                    // offers a modern format the image is written here instead: a <picture>
+                    // whose fallback costs a redirect would pay that redirect on every first
+                    // view, once per image.
+                    $url = $offersModernFormats
+                        ? $this->variantService->sourceUrl($data['path'], $filter)
+                        : $this->cacheManager->getBrowserPath($data['path'], $filter);
+
                     $sources[] = [
                         'breakpoint' => $breakpoint,
                         'url' => $url,
+                        // Most efficient format first, and empty for a shop that offers none.
+                        // The <img> always falls back to the url above.
+                        'variants' => $offersModernFormats
+                            ? $this->variantService->variantsFor($data['path'], $filter)
+                            : [],
                     ];
                 }
             }
