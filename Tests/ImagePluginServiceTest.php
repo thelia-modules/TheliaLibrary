@@ -166,6 +166,32 @@ final class ImagePluginServiceTest extends TestCase
     }
 
     /** @param list<array<string, mixed>> $sources */
+    /**
+     * The alt text comes from back-office content: a title carrying HTML must reach the
+     * <img> escaped, whether or not modern formats wrap it in a <picture>.
+     */
+    public function testATitleCarryingHtmlIsEscapedInTheAltText(): void
+    {
+        $imageService = $this->createMock(ImageService::class);
+        $imageService->method('getImages')->willReturn([
+            [
+                'sources' => [
+                    [
+                        'breakpoint' => 'default',
+                        'url' => '/media/cache/card/product/a.jpg',
+                        'variants' => [['format' => 'webp', 'mime_type' => 'image/webp', 'url' => '/media/cache/card/product/a.jpg.webp']],
+                    ],
+                ],
+                'data' => ['title' => '"><script>alert(1)</script>'],
+            ],
+        ]);
+
+        $render = (new ImagePluginService($imageService))->getImages(['source_type' => 'product', 'filters' => 'card']);
+
+        self::assertStringNotContainsString('<script>', $render);
+        self::assertStringContainsString('alt="&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;"', $render);
+    }
+
     private function render(array $sources, array $params = []): string
     {
         $imageService = $this->createMock(ImageService::class);
