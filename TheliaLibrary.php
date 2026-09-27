@@ -22,6 +22,7 @@ use Symfony\Component\Finder\Finder;
 use Thelia\Core\Install\Database;
 use Thelia\Module\BaseModule;
 use TheliaLibrary\Service\LegacyImageColumns;
+use TheliaLibrary\Service\LiipImagineConfigFile;
 
 class TheliaLibrary extends BaseModule
 {
@@ -46,9 +47,7 @@ class TheliaLibrary extends BaseModule
         if (!$fs->exists(THELIA_ROOT.'local/media/images')) {
             $fs->mkdir(THELIA_ROOT.'local/media/images', 0o755);
         }
-        if (!$fs->exists(self::IMAGINE_CONFIG_FILE)) {
-            $fs->copy(THELIA_MODULE_DIR.'TheliaLibrary/Config/liip_imagine_thelia.yaml.example', self::IMAGINE_CONFIG_FILE);
-        }
+        (new LiipImagineConfigFile(self::IMAGINE_CONFIG_FILE))->install();
 
         self::protectImageDirectory($fs);
 
@@ -81,9 +80,7 @@ class TheliaLibrary extends BaseModule
         $this->moveFileNamesOutOfTranslations($con);
 
         $fs = new Filesystem();
-        if (!$fs->exists(self::IMAGINE_CONFIG_FILE)) {
-            $fs->copy(THELIA_MODULE_DIR.'TheliaLibrary/Config/liip_imagine_thelia.yaml.example', self::IMAGINE_CONFIG_FILE);
-        }
+        (new LiipImagineConfigFile(self::IMAGINE_CONFIG_FILE))->install();
 
         self::protectImageDirectory($fs);
     }
