@@ -128,6 +128,30 @@ final class ImagePluginServiceTest extends TestCase
     }
 
     /**
+     * A caller that asks for no wrapper used to get a bare <img>. With a modern format
+     * active the image needs a <picture>, which must then be the only wrapper: the
+     * markup must not gain a tag named after the falsy value.
+     */
+    public function testADisabledWrapperStillRendersAWellFormedPicture(): void
+    {
+        $render = $this->render(
+            [
+                [
+                    'breakpoint' => 'default',
+                    'url' => '/media/cache/card/product/a.jpg',
+                    'variants' => [['format' => 'webp', 'mime_type' => 'image/webp', 'url' => '/media/cache/card/product/a.jpg.webp']],
+                ],
+            ],
+            ['wrapper' => false]
+        );
+
+        self::assertStringStartsWith('<picture>', $render);
+        self::assertStringEndsWith('</picture>', $render);
+        self::assertStringNotContainsString('< ', $render);
+        self::assertStringNotContainsString('</>', $render);
+    }
+
+    /**
      * A theme that names no "default" breakpoint used to render a <picture> with no
      * <img> in it at all, which shows nothing in every browser.
      */

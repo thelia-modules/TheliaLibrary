@@ -43,7 +43,7 @@ class ImagePluginService
 
             $tag = $params['container'] ?? "div";
 
-            return '<'.$tag.' '.$containerAttrs.'>'.$processedImgTag.'</'.$tag.'>';
+            return '<'.$tag.$containerAttrs.'>'.$processedImgTag.'</'.$tag.'>';
         }
 
         return $processedImgTag;
@@ -75,20 +75,24 @@ class ImagePluginService
             }
         }
 
+        // A caller that asked for no wrapper (false, null, '') gets the <picture> the
+        // markup needs anyway, and only that one: an empty wrapper name is no tag at all.
+        $wrapper = ($params['wrapper'] ?? null) ?: 'picture';
+
         // <source> is only legal inside <picture>. A caller that asked for a <figure>
         // still gets its <figure>, with the picture nested where the browser expects it.
-        if ($this->needsPicture($sources) && ($params['wrapper'] ?? 'picture') !== 'picture') {
+        if ($this->needsPicture($sources) && 'picture' !== $wrapper) {
             $render = '<picture>'.$render.'</picture>';
         }
 
         if ($this->needsWrapper($params, $sources)) {
             $wrapperAttrs = $this->concatHtmlAttrs($params['wrapper_attrs'] ?? []);
 
-            $tag = $params['wrapper'] ?? "picture";
+            $tag = $wrapper;
 
             $caption = isset($params['caption']) ? '<figcaption>'.$params['caption'].'</figcaption>' : '';
 
-            return '<'.$tag.' '.$wrapperAttrs.'>'.$render.$caption.'</'.$tag.'>';
+            return '<'.$tag.$wrapperAttrs.'>'.$render.$caption.'</'.$tag.'>';
         }
 
         return $render;
