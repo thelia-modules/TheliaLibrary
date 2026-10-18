@@ -102,7 +102,7 @@ class TheliaLibrary extends BaseModule
         }
 
         $fs->copy(
-            THELIA_MODULE_DIR.'TheliaLibrary'.DS.'Config'.DS.'storage'.DS.'images.htaccess',
+            __DIR__.DS.'Config'.DS.'storage'.DS.'images.htaccess',
             rtrim($directory, '/'.DS).DS.'.htaccess',
             true
         );
