@@ -14,10 +14,10 @@ namespace TheliaLibrary\Controller\Front;
 
 use Propel\Runtime\ActiveQuery\ModelCriteria;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Thelia\Controller\Front\BaseFrontController;
-use Thelia\Core\HttpFoundation\Response;
 use Thelia\Model\ConfigQuery;
 use Thelia\Model\ProductImage;
 use Thelia\Tools\URL;
@@ -122,7 +122,7 @@ class LegacyImageController extends BaseFrontController
             ->findOne();
 
         if (null === $image) {
-            return new Response(null, 404);
+            throw new HttpException(404);
         }
 
         $baseSourceFilePath = ConfigQuery::read('images_library_path');

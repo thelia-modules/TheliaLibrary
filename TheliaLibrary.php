@@ -102,7 +102,7 @@ class TheliaLibrary extends BaseModule
         }
 
         $fs->copy(
-            THELIA_MODULE_DIR.'TheliaLibrary'.DS.'Config'.DS.'storage'.DS.'images.htaccess',
+            __DIR__.DS.'Config'.DS.'storage'.DS.'images.htaccess',
             rtrim($directory, '/'.DS).DS.'.htaccess',
             true
         );
@@ -190,7 +190,7 @@ class TheliaLibrary extends BaseModule
     public static function configureServices(ServicesConfigurator $servicesConfigurator): void
     {
         $servicesConfigurator->load(self::getModuleCode().'\\', __DIR__)
-            ->exclude([__DIR__.'/I18n/*'])
+            ->exclude([__DIR__.'/I18n/*', __DIR__.'/Tests/*'])
             ->autowire(true)
             ->autoconfigure(true);
     }
