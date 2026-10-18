@@ -35,7 +35,7 @@ location ~* ^/local/library/ {
 
 ## **Using Plugins**
 
-You can use the `getImages` and `getImagesData`  plugins. Both of them are available with Smarty and Twig. Use this plugins instead the traditional loop (in case you have to deal with smarty).
+You can use the `getImages` and `getImagesData` Twig functions.
 
 - `getImagesData` return an array of processed images, depends of your liip_imagine configuration.
 - `getImages` use the same service that `getImagesData`  and render image(s) in a html tag
@@ -53,7 +53,7 @@ Here’s the params :
 | wrapper | false | An html wrapper tag for the rendered image. If filters|count > 1, image will be wrapped by a picture html tag. | “picture” or “figure” or “div” ex. |
 | wrapper_attrs | false | html attributes for wrapper | `wrapper_attrs=['class' => "test-class-picture"]` |
 | img_style | false | css propreties rended in the image style attribute | `img_style=['display' => 'block','margin' => '10px']` |
-| placeholder | false | fallback image to return. if no set, plugin will return `null`  | `{encore_manifest_file *file=*"dist/images/placeholder.webp"}` |
+| placeholder | false | fallback image to return. if no set, plugin will return `null`  | `/dist/images/placeholder.webp` |
 | position | false | position of the image | 1 |
 | limit | false | limited number of result | 1 |
 | offset | false | / | 1 |
@@ -63,32 +63,32 @@ Here’s the params :
 
 Here’s the exemple :
 
-```php
-{getImages
-  source_type="content"
-  source_id=2
-  filters=[
-    '1440px' => 'hero_large_desktop',
-    '1280px' => 'hero_small_desktop',
-    '1024px' => 'hero_tablette',
-    '768px' => 'hero_mobile',
-    'default' => 'hero_default'
-  ]
-  img_attrs=[
-    'width' => '768px',
-    'height' => '660px',
-    'class' => "test-class-img"
-  ]
-  wrapper="picture"
-  wrapper_attrs=[
-    'class' => "test-class-picture"
-  ]
-  img_style=[
-    'display' => 'block'
-  ]
-  limit=1
-  placeholder={encore_manifest_file file="dist/images/placeholder.webp"}
-}
+```twig
+{{ getImages({
+  source_type: 'content',
+  source_id: 2,
+  filters: {
+    '1440px': 'hero_large_desktop',
+    '1280px': 'hero_small_desktop',
+    '1024px': 'hero_tablette',
+    '768px': 'hero_mobile',
+    'default': 'hero_default'
+  },
+  img_attrs: {
+    width: '768px',
+    height: '660px',
+    class: 'test-class-img'
+  },
+  wrapper: 'picture',
+  wrapper_attrs: {
+    class: 'test-class-picture'
+  },
+  img_style: {
+    display: 'block'
+  },
+  limit: 1,
+  placeholder: '/dist/images/placeholder.webp'
+})|raw }}
 ```
 
 ## Upgrading to 2.0.9
