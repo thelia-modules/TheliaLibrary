@@ -1,0 +1,19 @@
+{% set link = data.link|default(null) %}
+{% set hasLink = link is not empty and link.url|default('') is not empty %}
+{% set imageStyle %}{% if data.width|default('') is not empty %}width: {{ data.width }};{% endif %} {% if data.height|default('') is not empty %}height: {{ data.height }};{% endif %}{% endset %}
+{% if hasLink %}
+    <a href="{{ link.url }}"{% if link.target|default('') is not empty %} target="{{ link.target }}"{% endif %}>
+{% endif %}
+{% if data.id|default(null) is not null %}
+    {% for image in getImagesData({source_type: 'library', img_id: data.id, filters: 'default'}) %}
+        {% set source = image.sources|first %}
+        {% if source.url|default('') is not empty %}
+            <img class="tb-{{ type.id|default('') }}" src="{{ source.url }}" alt="{{ image.data.title|default('') }}" loading="lazy" style="{{ imageStyle|trim }}" />
+        {% endif %}
+    {% endfor %}
+{% else %}
+    <img class="tb-{{ type.id|default('') }}" src="{{ data.url|default('') }}" alt="{{ data.alt|default('') }}" loading="lazy" style="{{ imageStyle|trim }}" />
+{% endif %}
+{% if hasLink %}
+    </a>
+{% endif %}
