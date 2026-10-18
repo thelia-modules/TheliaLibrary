@@ -99,7 +99,6 @@ class LibraryImage extends BaseI18nLoop implements PropelSearchLoopInterface
             $query,
             [
                 'TITLE',
-                'FILE_NAME',
             ]
         );
 
@@ -123,7 +122,7 @@ class LibraryImage extends BaseI18nLoop implements PropelSearchLoopInterface
             $row
                 ->set('ID', $image->getId())
                 ->set('TITLE', $image->getVirtualColumn('i18n_TITLE'))
-                ->set('FILE_NAME', $image->getVirtualColumn('i18n_FILE_NAME'))
+                ->set('FILE_NAME', $image->getFileName())
                 ->set('URL', $imageUrl)
             ;
 
