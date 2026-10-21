@@ -33,14 +33,20 @@ class TheliaLibrary extends BaseModule
 
     public const IMAGINE_CONFIG_FILE = THELIA_ROOT.'config/packages/liip_imagine_thelia.yaml';
 
+    /**
+     * Create the tables on a fresh install.
+     *
+     * The install script starts with DROP TABLE, so it only runs when the tables are missing.
+     * The database is asked rather than an "is_initialized" flag in the module configuration:
+     * a shop whose tables were created another way, or whose configuration was lost, would
+     * otherwise have every library image wiped by a mere reactivation.
+     */
     public function preActivation(?ConnectionInterface $con = null): bool
     {
-        if (!$this->getConfigValue('is_initialized', false)) {
-            $database = new Database($con);
+        $con ??= Propel::getWriteConnection('TheliaMain');
 
-            $database->insertSql(null, [__DIR__.'/Config/TheliaMain.sql']);
-
-            $this->setConfigValue('is_initialized', true);
+        if (!$this->hasTable($con, 'library_image')) {
+            (new Database($con))->insertSql(null, [__DIR__.'/Config/TheliaMain.sql']);
         }
 
         $fs = new Filesystem();
@@ -193,5 +199,13 @@ class TheliaLibrary extends BaseModule
             ->exclude([__DIR__.'/I18n/*', __DIR__.'/Tests/*'])
             ->autowire(true)
             ->autoconfigure(true);
+    }
+
+    private function hasTable(ConnectionInterface $con, string $table): bool
+    {
+        $statement = $con->prepare('SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table');
+        $statement->execute(['table' => $table]);
+
+        return (int) $statement->fetchColumn() > 0;
     }
 }
