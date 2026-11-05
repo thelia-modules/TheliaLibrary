@@ -39,8 +39,15 @@ add the equivalent to your server block if the directory is under your web root:
 ```nginx
 location ~* ^/local/library/ {
     location ~* \.(php[0-9]?|phtml|phar|cgi|pl|py)$ { deny all; }
+    location ~* \.svg$ {
+        add_header Content-Security-Policy "sandbox" always;
+        add_header X-Content-Type-Options "nosniff" always;
+    }
 }
 ```
+
+An `add_header` in a `location` drops every `add_header` that location would
+inherit: repeat there the headers your server block sets for all responses.
 
 ## **Using Plugins**
 
@@ -111,8 +118,13 @@ the module's own:
   or no size at all (neither a `viewBox` nor an absolute `width` and `height`);
 - otherwise cleaned: scripts, event handlers, animations, `foreignObject` and remote
   references leave the file, and a missing `viewBox` is added from `width` and
-  `height`. When the cleaning removed nothing, the submitted bytes are stored as they
-  are.
+  `height`. Comments leave too, and CDATA sections become escaped text: an HTML page
+  that inlines the drawing reads both differently from an XML parser. When the
+  cleaning removed nothing and the file holds neither, the submitted bytes are stored
+  as they are.
+
+SVG files stored before 2.4.0 were never cleaned: they keep answering 400 at the SVG
+address until they are uploaded again.
 
 `TheliaLibrary\Service\Svg\SvgSanitizerInterface` gives the same cleaning to other
 modules, with the list of what it removed, so an editor can be told before storing.
@@ -120,7 +132,10 @@ modules, with the list of what it removed, so an editor can be told before stori
 An SVG is served as it is stored, never through Imagine:
 `/image-library/{id}/{region}/{size}/{rotation}/{quality}.svg` answers the file with
 `Content-Type: image/svg+xml` and `Content-Security-Policy: sandbox`, so that a file
-opened on its own gets no script, cookie or storage of the site. Region, size, rotation
+opened on its own gets no script, cookie or storage of the site. If the image
+directory is under your web root, the `.htaccess` the module writes sends the same
+policy and `X-Content-Type-Options: nosniff` for `.svg` files when `mod_headers` is
+enabled; on nginx, add the `.svg` location of the block above. Region, size, rotation
 and quality do not apply; asking for an SVG in another format answers 400. Its
 `info.json` gives the size of its `viewBox`. Public URLs and the image plugin point at
 that address whatever format or filter a template asks for.

@@ -86,6 +86,17 @@ final class LibraryImageFileNamerTest extends TestCase
         self::assertSame('svg', $this->namer()->resolveExtension($file));
     }
 
+    public function testItFindsTheRootOfAnSvgAfterALongComment(): void
+    {
+        $file = $this->temporaryFile(
+            'drawing.svg',
+            '<!-- '.str_repeat('exported by a tool that writes a lot ', 300)."-->\n"
+            .'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"/>'
+        );
+
+        self::assertSame('svg', $this->namer()->resolveExtension($file));
+    }
+
     public function testItRejectsAnSvgItCannotReadSafely(): void
     {
         $file = $this->temporaryFile(

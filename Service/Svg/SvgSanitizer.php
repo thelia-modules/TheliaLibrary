@@ -32,6 +32,12 @@ final readonly class SvgSanitizer implements SvgSanitizerInterface
 {
     public const MAXIMUM_BYTES = 5 * 1024 * 1024;
 
+    /**
+     * Largest side recorded, in pixels: the size is stored in a signed
+     * 32-bit column, and `1e400` reads as infinity.
+     */
+    public const MAXIMUM_SIDE = 2147483647.0;
+
     private const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 
     private const UTF8_BYTE_ORDER_MARK = "\xEF\xBB\xBF";
@@ -58,8 +64,13 @@ final readonly class SvgSanitizer implements SvgSanitizerInterface
         $cleaned = $this->parse($this->clean($svg));
 
         // Equal canonical forms mean nothing was removed, even something the
-        // change list would have missed.
-        $unchanged = $this->canonicalForm($submitted) === $this->canonicalForm($cleaned);
+        // change list would have missed. A comment or a CDATA section rules the
+        // submitted bytes out all the same: an HTML page that inlines the
+        // drawing reads them differently from an XML parser (`<!-->` closes a
+        // comment there). The sanitizer's output has neither: it drops
+        // comments and writes CDATA as escaped text.
+        $unchanged = !$this->holdsMarkupAnHtmlParserRereads($svg)
+            && $this->canonicalForm($submitted) === $this->canonicalForm($cleaned);
 
         $changes = $this->changeDetector->detect($submitted, $cleaned);
         $root = $cleaned->documentElement ?? throw new UnreadableSvgException(UnreadableSvgReason::MalformedXml);
@@ -144,6 +155,11 @@ final readonly class SvgSanitizer implements SvgSanitizerInterface
         return (string) $copy->C14N(true, false);
     }
 
+    private function holdsMarkupAnHtmlParserRereads(string $svg): bool
+    {
+        return str_contains($svg, '<!--') || false !== stripos($svg, '<![CDATA[');
+    }
+
     private function clean(string $svg): string
     {
         $sanitizer = new Sanitizer();
@@ -205,7 +221,7 @@ final readonly class SvgSanitizer implements SvgSanitizerInterface
         $width = (float) $values[2];
         $height = (float) $values[3];
 
-        return $width > 0 && $height > 0 ? [$width, $height] : null;
+        return $this->isUsableSize($width) && $this->isUsableSize($height) ? [$width, $height] : null;
     }
 
     private function length(string $length): ?float
@@ -216,7 +232,16 @@ final readonly class SvgSanitizer implements SvgSanitizerInterface
 
         $value = (float) $matches[1] * self::UNIT_TO_PIXELS[strtolower($matches[2] ?? '')];
 
-        return $value > 0 ? $value : null;
+        return $this->isUsableSize($value) ? $value : null;
+    }
+
+    /**
+     * A side the library can record: positive, finite, and within the integer
+     * column the size is stored in.
+     */
+    private function isUsableSize(float $value): bool
+    {
+        return $value > 0 && $value <= self::MAXIMUM_SIDE;
     }
 
     private function number(float $value): string

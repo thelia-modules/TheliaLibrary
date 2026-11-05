@@ -53,7 +53,7 @@ final class SvgSanitizerTest extends TestCase
     public function testItKeepsTheSubmittedBytesOfACleanDocument(): void
     {
         $svg = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<svg ".self::SVG." viewBox=\"0 0 16 8\">\n"
-            ."  <!-- a comment -->\n  <path d=\"M0 0h16v8z\"></path>\n</svg>\n";
+            ."  <path d=\"M0 0h16v8z\"></path>\n</svg>\n";
 
         $result = $this->sanitize($svg);
 
@@ -61,6 +61,36 @@ final class SvgSanitizerTest extends TestCase
         self::assertSame($svg, $result->content);
         self::assertSame(16.0, $result->width);
         self::assertSame(8.0, $result->height);
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function markupAnHtmlParserRereads(): iterable
+    {
+        yield 'comment closed abruptly' => ['<svg '.self::SVG.' viewBox="0 0 1 1"/><!--><img src=x onerror=alert(1)>-->', 'onerror'];
+        yield 'script behind a comment' => ['<svg '.self::SVG.' viewBox="0 0 1 1"><!--><script>alert(1)</script>--></svg>', '<script'];
+        yield 'cdata in a title' => ['<svg '.self::SVG.' viewBox="0 0 1 1"><title><![CDATA[><img src=x onerror=alert(1)>]]></title></svg>', '<img'];
+        yield 'php in a comment' => ['<svg '.self::SVG.' viewBox="0 0 1 1"><!-- <?php system($_GET["c"]); ?> --></svg>', '<?php'];
+        yield 'php in cdata' => ['<svg '.self::SVG.' viewBox="0 0 1 1"><text><![CDATA[a<?php system($_GET["c"]); ?>b]]></text></svg>', '<?php'];
+    }
+
+    #[DataProvider('markupAnHtmlParserRereads')]
+    public function testItNeverKeepsMarkupAnHtmlPageWouldReadDifferently(string $svg, string $danger): void
+    {
+        $content = $this->sanitize($svg)->content;
+
+        self::assertStringNotContainsString($danger, $content);
+        self::assertStringNotContainsString('<!--', $content);
+        self::assertStringNotContainsString('<![CDATA[', $content);
+    }
+
+    public function testItKeepsTheTextOfACdataSectionAsEscapedText(): void
+    {
+        $result = $this->sanitize('<svg '.self::SVG.' viewBox="0 0 1 1"><style><![CDATA[g > rect { fill: red; }]]></style></svg>');
+
+        self::assertSame([], $result->changes);
+        self::assertStringContainsString('<style>g &gt; rect { fill: red; }</style>', $result->content);
     }
 
     public function testItAcceptsAUtf8ByteOrderMark(): void
@@ -152,6 +182,8 @@ final class SvgSanitizerTest extends TestCase
         yield 'no size' => ['<svg '.self::SVG.'><rect width="1" height="1"/></svg>', UnreadableSvgReason::NoDimensions];
         yield 'relative size only' => ['<svg '.self::SVG.' width="100%" height="100%"/>', UnreadableSvgReason::NoDimensions];
         yield 'empty viewBox and no size' => ['<svg '.self::SVG.' viewBox="0 0 0 0"/>', UnreadableSvgReason::NoDimensions];
+        yield 'infinite viewBox' => ['<svg '.self::SVG.' viewBox="0 0 1e400 1"/>', UnreadableSvgReason::NoDimensions];
+        yield 'side past the stored integer' => ['<svg '.self::SVG.' width="3000000000" height="1"/>', UnreadableSvgReason::NoDimensions];
     }
 
     #[DataProvider('unreadableDocuments')]

@@ -20,3 +20,12 @@
         Deny from all
     </IfModule>
 </FilesMatch>
+
+# An SVG opened from here, rather than through the module's route, still gets
+# no script, cookie or storage of the site, and is never read as another type.
+<FilesMatch "(?i)\.svg$">
+    <IfModule mod_headers.c>
+        Header set Content-Security-Policy "sandbox"
+        Header set X-Content-Type-Options "nosniff"
+    </IfModule>
+</FilesMatch>

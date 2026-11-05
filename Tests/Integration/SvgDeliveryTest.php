@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace TheliaLibrary\Tests\Integration;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
@@ -85,6 +86,35 @@ final class SvgDeliveryTest extends WebIntegrationTestCase
         $image = $this->store(self::PNG, 'picture.png');
 
         $this->client->request('GET', '/image-library/'.$image->getId().'/full/max/0/default.svg');
+
+        self::assertSame(400, $this->client->getResponse()->getStatusCode());
+    }
+
+    /**
+     * Before 2.0.8 the library stored any file under its submitted name behind
+     * a 10-character prefix, and recorded its type from 1.4.0 on.
+     *
+     * @return iterable<string, array{?string, string}>
+     */
+    public static function svgStoredBeforeTheLibraryCleanedThem(): iterable
+    {
+        yield 'no type recorded, as SVG' => [null, 'svg'];
+        yield 'no type recorded, drawn as PNG' => [null, 'png'];
+        yield 'SVG type recorded, as SVG' => ['image/svg+xml', 'svg'];
+        yield 'SVG type recorded, drawn as PNG' => ['image/svg+xml', 'png'];
+    }
+
+    #[DataProvider('svgStoredBeforeTheLibraryCleanedThem')]
+    public function testItDoesNotServeAnSvgStoredBeforeTheLibraryCleanedThem(?string $mimeType, string $format): void
+    {
+        $fileName = bin2hex(random_bytes(5)).'_drawing.svg';
+        file_put_contents(TheliaLibrary::getImageDirectory().$fileName, '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"/>');
+        $this->writtenFiles[] = TheliaLibrary::getImageDirectory().$fileName;
+
+        $image = (new LibraryImage())->setLocale('en_US')->setTitle('Old drawing')->setFileName($fileName)->setMimeType($mimeType);
+        $image->save();
+
+        $this->client->request('GET', '/image-library/'.$image->getId().'/full/max/0/default.'.$format);
 
         self::assertSame(400, $this->client->getResponse()->getStatusCode());
     }

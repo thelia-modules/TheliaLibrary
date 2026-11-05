@@ -17,6 +17,7 @@ namespace TheliaLibrary\Service;
 use Symfony\Component\HttpFoundation\File\File;
 use TheliaLibrary\Exception\UnreadableSvgException;
 use TheliaLibrary\Exception\UnsupportedLibraryImageException;
+use TheliaLibrary\Service\Svg\SvgSanitizer;
 use TheliaLibrary\Service\Svg\SvgSanitizerInterface;
 
 /**
@@ -36,6 +37,13 @@ use TheliaLibrary\Service\Svg\SvgSanitizerInterface;
 final readonly class LibraryImageFileNamer
 {
     public const SVG_EXTENSION = 'svg';
+
+    /**
+     * The name an SVG is stored under. Before 2.0.8 the library kept the
+     * submitted name behind a 10-character prefix, and stored SVG files it
+     * never cleaned: they do not match.
+     */
+    public const STORED_SVG_NAME_PATTERN = '~^[0-9a-f]{20}\.svg$~';
 
     /**
      * The formats the library stores, and the extension each one is written
@@ -67,8 +75,6 @@ final readonly class LibraryImageFileNamer
         'text/xml',
         'application/xml',
     ];
-
-    private const SVG_ROOT_SEARCH_BYTES = 4096;
 
     public function __construct(private SvgSanitizerInterface $svgSanitizer)
     {
@@ -143,8 +149,10 @@ final readonly class LibraryImageFileNamer
             return true;
         }
 
-        $head = (string) file_get_contents($path, false, null, 0, self::SVG_ROOT_SEARCH_BYTES);
+        // An export can open with a long comment: the root is looked for in
+        // the whole file, up to the size the sanitizer accepts at all.
+        $content = (string) file_get_contents($path, false, null, 0, SvgSanitizer::MAXIMUM_BYTES + 1);
 
-        return 1 === preg_match('~<svg[\s/>]~i', $head);
+        return 1 === preg_match('~<svg[\s/>]~i', $content);
     }
 }

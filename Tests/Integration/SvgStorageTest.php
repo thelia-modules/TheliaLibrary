@@ -28,6 +28,9 @@ use TheliaLibrary\TheliaLibrary;
  */
 final class SvgStorageTest extends IntegrationTestCase
 {
+    // A 1x1 PNG, written out so the test does not need GD to make one.
+    private const PNG = "\x89PNG\r\n\x1a\n\0\0\0\rIHDR\0\0\0\x01\0\0\0\x01\x08\x06\0\0\0\x1f\x15\xc4\x89\0\0\0\rIDATx\xdac\xfc\xcf\xc0P\x0f\0\x04\x85\x01\x80\x84\xa9\x8c!\0\0\0\0IEND\xaeB`\x82";
+
     /** @var list<string> */
     private array $writtenFiles = [];
 
@@ -65,7 +68,7 @@ final class SvgStorageTest extends IntegrationTestCase
 
     public function testItKeepsTheSubmittedBytesOfADocumentTheCleaningLeftAsItWas(): void
     {
-        $svg = "<!-- exported -->\n<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16.4 8.6\">\n"
+        $svg = "\n<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16.4 8.6\">\n"
             ."  <path d=\"M0 0h16v8z\"></path>\n</svg>\n";
 
         $image = $this->store($svg);
@@ -74,6 +77,24 @@ final class SvgStorageTest extends IntegrationTestCase
         self::assertSame('image/svg+xml', $image->getMimeType());
         self::assertSame(16, $image->getWidth());
         self::assertSame(9, $image->getHeight());
+    }
+
+    public function testAPictureReplacedByAnSvgIsDescribedAsTheSvg(): void
+    {
+        $image = $this->store(self::PNG);
+        $replacedFile = TheliaLibrary::getImageDirectory().$image->getFileName();
+
+        $path = $this->temporaryFile('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 30"/>');
+
+        /** @var LibraryImageService $service */
+        $service = $this->getService(LibraryImageService::class);
+        $image = $service->updateImage((int) $image->getId(), new File($path), null, 'en_US');
+        $this->writtenFiles[] = TheliaLibrary::getImageDirectory().$image->getFileName();
+
+        self::assertFileDoesNotExist($replacedFile);
+        self::assertStringEndsWith('.svg', (string) $image->getFileName());
+        self::assertSame('image/svg+xml', $image->getMimeType());
+        self::assertSame([40, 30], [$image->getWidth(), $image->getHeight()]);
     }
 
     public function testItWritesNothingForAnSvgItCannotReadSafely(): void
@@ -91,9 +112,7 @@ final class SvgStorageTest extends IntegrationTestCase
 
     private function store(string $svg): LibraryImage
     {
-        $path = sys_get_temp_dir().\DIRECTORY_SEPARATOR.uniqid('library-svg-', true).'.svg';
-        file_put_contents($path, $svg);
-        $this->writtenFiles[] = $path;
+        $path = $this->temporaryFile($svg);
 
         /** @var LibraryImageService $service */
         $service = $this->getService(LibraryImageService::class);
@@ -101,6 +120,15 @@ final class SvgStorageTest extends IntegrationTestCase
         $this->writtenFiles[] = TheliaLibrary::getImageDirectory().$image->getFileName();
 
         return $image;
+    }
+
+    private function temporaryFile(string $content): string
+    {
+        $path = sys_get_temp_dir().\DIRECTORY_SEPARATOR.uniqid('library-svg-', true);
+        file_put_contents($path, $content);
+        $this->writtenFiles[] = $path;
+
+        return $path;
     }
 
     private function storedContent(LibraryImage $image): string
