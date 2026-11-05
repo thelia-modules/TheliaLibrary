@@ -28,15 +28,18 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
  * - quality: `default`, `color`, `gray` or `bitonal`;
  * - format: `jpg`, `jpeg`, `png`, `gif`, `jp2` or `webp`.
  *
- * The canonical spelling names the stored copy, so `01,1,10,10` and `1,1,10,10` share one file.
+ * Rendering reads the canonical values. The stored copy keeps the spelling of the URL, so the
+ * web server finds it as a static file on the next request; numbers written with a leading
+ * zero are refused, which leaves few spellings for one rendering, and ImageService caps the
+ * copies stored per image.
  */
 final readonly class ImageVariantRequest
 {
     public const QUALITIES = ['default', 'color', 'gray', 'bitonal'];
     public const FORMATS = ['jpg', 'jpeg', 'png', 'gif', 'jp2', 'webp'];
 
-    private const PIXELS = '\d{1,5}';
-    private const PERCENT = '\d{1,3}(?:\.\d{1,2})?';
+    private const PIXELS = '(?:0|[1-9]\d{0,4})';
+    private const PERCENT = '(?:0|[1-9]\d{0,2})(?:\.\d{1,2})?';
 
     private function __construct(
         public string $region,
@@ -44,6 +47,7 @@ final readonly class ImageVariantRequest
         public string $rotation,
         public string $quality,
         public string $format,
+        private string $relativePath,
     ) {
     }
 
@@ -54,8 +58,8 @@ final readonly class ImageVariantRequest
         string $quality,
         string $format,
     ): self {
-        $format = strtolower($format);
-        if (!\in_array($format, self::FORMATS, true)) {
+        $canonicalFormat = strtolower($format);
+        if (!\in_array($canonicalFormat, self::FORMATS, true)) {
             throw new HttpException(400, 'Bad format value');
         }
 
@@ -68,17 +72,19 @@ final readonly class ImageVariantRequest
             self::canonicalSize($size),
             self::canonicalRotation($rotation),
             $quality,
-            $format,
+            $canonicalFormat,
+            $region.\DIRECTORY_SEPARATOR.$size.\DIRECTORY_SEPARATOR.$rotation
+                .\DIRECTORY_SEPARATOR.$quality.'.'.$format,
         );
     }
 
     /**
-     * Where the rendered copy is stored, relative to the directory of its source image.
+     * Where the rendered copy is stored, relative to the directory of its source image:
+     * the path of the URL itself, every segment of it checked.
      */
     public function relativePath(): string
     {
-        return $this->region.\DIRECTORY_SEPARATOR.$this->size.\DIRECTORY_SEPARATOR.$this->rotation
-            .\DIRECTORY_SEPARATOR.$this->quality.'.'.$this->format;
+        return $this->relativePath;
     }
 
     private static function canonicalRegion(string $region): string

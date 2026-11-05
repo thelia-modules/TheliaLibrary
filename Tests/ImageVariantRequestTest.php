@@ -39,7 +39,7 @@ final class ImageVariantRequestTest extends TestCase
         yield 'modifiers in another order' => [['full', '!*^400,400', '0', 'default', 'webp'], 'full/^*!400,400/0/default.webp'];
         yield 'percentage size' => [['full', 'pct:50.0', '0', 'default', 'png'], 'full/pct:50/0/default.png'];
         yield 'square region' => [['square', 'max', '0', 'gray', 'png'], 'square/max/0/gray.png'];
-        yield 'pixel region' => [['010,0,20,20', 'max', '90', 'default', 'png'], '10,0,20,20/max/90/default.png'];
+        yield 'pixel region' => [['10,0,20,20', 'max', '90', 'default', 'png'], '10,0,20,20/max/90/default.png'];
         yield 'percentage region' => [['pct:10.50,0,50,50', 'max', '0', 'default', 'png'], 'pct:10.5,0,50,50/max/0/default.png'];
         yield 'mirrored full turn' => [['full', 'max', '!360', 'default', 'png'], 'full/max/!0/default.png'];
         yield 'fractional rotation' => [['full', 'max', '90.50', 'default', 'png'], 'full/max/90.5/default.png'];
@@ -50,9 +50,28 @@ final class ImageVariantRequestTest extends TestCase
      * @param array{string, string, string, string, string} $segments
      */
     #[DataProvider('acceptedSpellings')]
-    public function testAnAcceptedSpellingIsStoredUnderItsCanonicalPath(array $segments, string $relativePath): void
+    public function testAnAcceptedSpellingIsRenderedFromItsCanonicalValues(array $segments, string $canonical): void
     {
-        self::assertSame($relativePath, ImageVariantRequest::fromUrlSegments(...$segments)->relativePath());
+        $request = ImageVariantRequest::fromUrlSegments(...$segments);
+
+        self::assertSame(
+            $canonical,
+            $request->region.'/'.$request->size.'/'.$request->rotation.'/'.$request->quality.'.'.$request->format,
+        );
+    }
+
+    /**
+     * The web server serves the stored copy as a static file only under the path of the URL.
+     */
+    #[DataProvider('acceptedSpellings')]
+    public function testAnAcceptedSpellingIsStoredUnderThePathOfItsUrl(array $segments): void
+    {
+        [$region, $size, $rotation, $quality, $format] = $segments;
+
+        self::assertSame(
+            implode(\DIRECTORY_SEPARATOR, [$region, $size, $rotation, $quality.'.'.$format]),
+            ImageVariantRequest::fromUrlSegments(...$segments)->relativePath(),
+        );
     }
 
     /**
@@ -63,6 +82,9 @@ final class ImageVariantRequestTest extends TestCase
         yield 'region with a negative value' => [['-1,0,10,10', 'max', '0', 'default', 'png']];
         yield 'region of zero width' => [['0,0,0,10', 'max', '0', 'default', 'png']];
         yield 'region past the whole image in percent' => [['pct:100,0,10,10', 'max', '0', 'default', 'png']];
+        yield 'region with a leading zero' => [['010,0,20,20', 'max', '0', 'default', 'png']];
+        yield 'size with a leading zero' => [['full', '048,', '0', 'default', 'png']];
+        yield 'rotation with a leading zero' => [['full', 'max', '090', 'default', 'png']];
         yield 'region with six digits' => [['100000,0,10,10', 'max', '0', 'default', 'png']];
         yield 'encoded parent directory' => [['%2e%2e', 'max', '0', 'default', 'png']];
         yield 'size with no side' => [['full', ',', '0', 'default', 'png']];

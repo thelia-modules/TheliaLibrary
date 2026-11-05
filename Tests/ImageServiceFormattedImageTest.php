@@ -69,7 +69,7 @@ final class ImageServiceFormattedImageTest extends IntegrationTestCase
     {
         $path = $this->imageService->geFormattedImage((string) $this->imageId, 'full', '20,', '0', 'default', 'png');
 
-        self::assertSame($this->variantDirectory.'/full/20,20/0/default.png', $path);
+        self::assertSame($this->variantDirectory.'/full/20,/0/default.png', $path);
         self::assertFileExists($path);
         self::assertSame([20, 20], \array_slice(getimagesize($path), 0, 2));
     }
@@ -131,13 +131,15 @@ final class ImageServiceFormattedImageTest extends IntegrationTestCase
         $this->imageService->geFormattedImage($this->imageId.'x', 'full', 'max', '0', 'default', 'png');
     }
 
-    public function testTwoSpellingsOfOneRenderingShareOneFile(): void
+    /**
+     * nginx and Apache serve a stored copy without PHP only when it sits at the path of the URL.
+     */
+    public function testTheStoredCopyKeepsThePathOfTheUrl(): void
     {
-        $first = $this->imageService->geFormattedImage((string) $this->imageId, '1,1,10,10', '!10,10', '0', 'default', 'PNG');
-        $second = $this->imageService->geFormattedImage((string) $this->imageId, '01,1,010,10', '10,10!', '000', 'default', 'png');
+        $path = $this->imageService->geFormattedImage((string) $this->imageId, '1,1,10,10', '10,!', '0', 'default', 'PNG');
 
-        self::assertSame($first, $second);
-        self::assertSame(1, $this->storedVariantCount());
+        self::assertSame($this->variantDirectory.'/1,1,10,10/10,!/0/default.PNG', $path);
+        self::assertSame([10, 10], \array_slice(getimagesize($path), 0, 2));
     }
 
     public function testCopiesBeyondTheCapAreServedWithoutBeingStored(): void
