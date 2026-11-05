@@ -19,8 +19,8 @@ For now this module doesn't have an interface, only an api documented on {your_w
 
 Uploaded pictures are stored in `local/library/images` (configurable through the
 `image_directory` module configuration). The module only stores JPEG, PNG, GIF,
-WebP and BMP pictures, and MP4 videos: the format is read from the content of
-the file, the extension is derived from that format, and the stored name is
+WebP, BMP and SVG pictures, and MP4 videos: the format is read from the content
+of the file, the extension is derived from that format, and the stored name is
 generated, so neither the name nor the extension sent by the browser is reused.
 
 ## Videos
@@ -99,6 +99,34 @@ Here’s the exemple :
   placeholder: '/dist/images/placeholder.webp'
 })|raw }}
 ```
+
+## Upgrading to 2.4.0
+
+The library now stores SVG drawings. A submitted SVG goes through
+[enshrined/svg-sanitize](https://github.com/darylldoyle/svg-sanitizer) behind checks of
+the module's own:
+
+- refused, with the reason, when it cannot be read safely: a DOCTYPE or an entity,
+  bytes that are not UTF-8, broken XML, a root that is not `<svg>`, more than 5 MiB,
+  or no size at all (neither a `viewBox` nor an absolute `width` and `height`);
+- otherwise cleaned: scripts, event handlers, animations, `foreignObject` and remote
+  references leave the file, and a missing `viewBox` is added from `width` and
+  `height`. When the cleaning removed nothing, the submitted bytes are stored as they
+  are.
+
+`TheliaLibrary\Service\Svg\SvgSanitizerInterface` gives the same cleaning to other
+modules, with the list of what it removed, so an editor can be told before storing.
+
+An SVG is served as it is stored, never through Imagine:
+`/image-library/{id}/{region}/{size}/{rotation}/{quality}.svg` answers the file with
+`Content-Type: image/svg+xml` and `Content-Security-Policy: sandbox`, so that a file
+opened on its own gets no script, cookie or storage of the site. Region, size, rotation
+and quality do not apply; asking for an SVG in another format answers 400. Its
+`info.json` gives the size of its `viewBox`. Public URLs and the image plugin point at
+that address whatever format or filter a template asks for.
+
+`LibraryImageFileNamer` and `LibraryImageService` take the sanitizer in their
+constructor: code that builds them by hand has to pass it.
 
 ## Upgrading to 2.0.9
 
