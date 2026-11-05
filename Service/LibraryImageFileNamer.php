@@ -15,7 +15,9 @@ declare(strict_types=1);
 namespace TheliaLibrary\Service;
 
 use Symfony\Component\HttpFoundation\File\File;
+use TheliaLibrary\Exception\UnreadableSvgException;
 use TheliaLibrary\Exception\UnsupportedLibraryImageException;
+use TheliaLibrary\Service\Svg\SvgSanitizerInterface;
 
 /**
  * Decides, from the bytes of a submitted file alone, whether the library
@@ -28,9 +30,13 @@ use TheliaLibrary\Exception\UnsupportedLibraryImageException;
  * Neither the name nor the extension sent by the client is reused. The
  * format is read from the content, the extension is derived from that
  * format, and the stored name is generated.
+ *
+ * An SVG is stored only when the sanitizer can read it safely.
  */
-final class LibraryImageFileNamer
+final readonly class LibraryImageFileNamer
 {
+    public const SVG_EXTENSION = 'svg';
+
     /**
      * The formats the library stores, and the extension each one is written
      * with. Matches the formats the API resource already documents.
@@ -51,8 +57,28 @@ final class LibraryImageFileNamer
     public const VIDEO_MIME_TYPES = ['video/mp4'];
 
     /**
+     * What the content detection answers for an SVG: its own type, or plain
+     * text and XML when a comment, blank lines or a stylesheet instruction
+     * come before the root element.
+     */
+    private const SVG_CANDIDATE_MIME_TYPES = [
+        'image/svg+xml',
+        'text/plain',
+        'text/xml',
+        'application/xml',
+    ];
+
+    private const SVG_ROOT_SEARCH_BYTES = 4096;
+
+    public function __construct(private SvgSanitizerInterface $svgSanitizer)
+    {
+    }
+
+    /**
      * @throws UnsupportedLibraryImageException when the content is not one of
      *                                          the stored formats
+     * @throws UnreadableSvgException           when the content is an SVG the
+     *                                          sanitizer cannot read safely
      */
     public function generateFileName(File $file): string
     {
@@ -71,6 +97,12 @@ final class LibraryImageFileNamer
         }
 
         $mimeType = $file->getMimeType();
+
+        if ($this->isSvgCandidate($path, $mimeType)) {
+            $this->svgSanitizer->sanitize((string) file_get_contents($path));
+
+            return self::SVG_EXTENSION;
+        }
 
         if (null === $mimeType || !isset(self::EXTENSION_BY_MIME_TYPE[$mimeType])) {
             throw new UnsupportedLibraryImageException(
@@ -99,5 +131,20 @@ final class LibraryImageFileNamer
         }
 
         return self::EXTENSION_BY_MIME_TYPE[$mimeType];
+    }
+
+    private function isSvgCandidate(string $path, ?string $mimeType): bool
+    {
+        if (!\in_array($mimeType, self::SVG_CANDIDATE_MIME_TYPES, true)) {
+            return false;
+        }
+
+        if ('image/svg+xml' === $mimeType) {
+            return true;
+        }
+
+        $head = (string) file_get_contents($path, false, null, 0, self::SVG_ROOT_SEARCH_BYTES);
+
+        return 1 === preg_match('~<svg[\s/>]~i', $head);
     }
 }

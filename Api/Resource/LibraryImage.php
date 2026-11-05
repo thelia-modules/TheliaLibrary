@@ -121,6 +121,7 @@ class LibraryImage extends AbstractTranslatableResource
         'image/jpeg',
         'image/png',
         'image/webp',
+        'image/svg+xml',
     ])]
     public ?UploadedFile $image = null;
 

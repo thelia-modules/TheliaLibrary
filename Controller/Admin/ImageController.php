@@ -114,7 +114,7 @@ final class ImageController extends BaseAdminController
     private static function unsupportedImageMessage(): string
     {
         return Translator::getInstance()->trans(
-            'Only JPEG, PNG, GIF, WebP and BMP images can be stored in the library.',
+            'Only JPEG, PNG, GIF, WebP, BMP and SVG images can be stored in the library.',
             [],
             TheliaLibrary::DOMAIN_NAME
         );

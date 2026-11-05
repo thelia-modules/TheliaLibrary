@@ -19,6 +19,8 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Thelia\Core\Translation\Translator;
 use TheliaLibrary\Model\LibraryImage;
 use TheliaLibrary\Model\LibraryImageQuery;
+use TheliaLibrary\Service\Svg\SanitizedSvg;
+use TheliaLibrary\Service\Svg\SvgSanitizerInterface;
 use TheliaLibrary\TheliaLibrary;
 
 class LibraryImageService
@@ -34,16 +36,20 @@ class LibraryImageService
 
     protected LibraryImageFileNamer $fileNamer;
 
+    protected SvgSanitizerInterface $svgSanitizer;
+
     public function __construct(
         EventDispatcherInterface $eventDispatcher,
         RequestStack $requestStack,
         ImageService $imageService,
-        LibraryImageFileNamer $fileNamer
+        LibraryImageFileNamer $fileNamer,
+        SvgSanitizerInterface $svgSanitizer
     ) {
         $this->eventDispatcher = $eventDispatcher;
         $this->requestStack = $requestStack;
         $this->imageService = $imageService;
         $this->fileNamer = $fileNamer;
+        $this->svgSanitizer = $svgSanitizer;
     }
 
     /**
@@ -149,6 +155,9 @@ class LibraryImageService
             // submission that is not stored must leave the existing image and
             // the destination directory exactly as they were.
             $imageName = $this->fileNamer->generateFileName($file);
+            $svg = str_ends_with($imageName, '.'.LibraryImageFileNamer::SVG_EXTENSION)
+                ? $this->writeCleanedSvg($file)
+                : null;
 
             // Remove the file being replaced
             if (null !== $image->getFileName()) {
@@ -163,7 +172,7 @@ class LibraryImageService
             }
 
             $image->setFileName($imageName);
-            $this->describeFile($image, $movedFile);
+            $this->describeFile($image, $movedFile, $svg);
 
             // Resized and converted copies are addressed by image id, not by
             // file name: left in place they keep serving the replaced picture
@@ -197,11 +206,42 @@ class LibraryImageService
     }
 
     /**
+     * Stores the cleaned document in place of the submitted one. A document
+     * the cleaning left as it was keeps its bytes: the sanitizer would only
+     * rewrite its layout.
+     */
+    protected function writeCleanedSvg(File $file): SanitizedSvg
+    {
+        $submitted = (string) file_get_contents($file->getPathname());
+        $svg = $this->svgSanitizer->sanitize($submitted);
+
+        if ($svg->content !== $submitted) {
+            (new Filesystem())->dumpFile($file->getPathname(), $svg->content);
+        }
+
+        return $svg;
+    }
+
+    /**
      * Records what the stored file is, so listings can show its weight, size
      * and format without opening every file on disk.
      */
-    protected function describeFile(LibraryImage $image, File $file): void
+    protected function describeFile(LibraryImage $image, File $file, ?SanitizedSvg $svg = null): void
     {
+        clearstatcache(true, $file->getPathname());
+
+        if (null !== $svg) {
+            // The content detection may call an SVG plain text, and the image
+            // functions cannot read its size: the sanitizer has both.
+            $image
+                ->setMimeType('image/svg+xml')
+                ->setFileSize($file->getSize() ?: null)
+                ->setWidth(max(1, (int) round($svg->width)))
+                ->setHeight(max(1, (int) round($svg->height)));
+
+            return;
+        }
+
         $image
             ->setMimeType($file->getMimeType())
             ->setFileSize($file->getSize() ?: null);
