@@ -34,7 +34,12 @@ class ImageController extends BaseFrontController
     ) {
         $imagePath = $imageService->geFormattedImage($identifier, $region, $size, $rotation, $quality, $format);
 
-        return new BinaryFileResponse($imagePath);
+        $response = new BinaryFileResponse($imagePath);
+        if ($imageService->isTemporaryVariant($imagePath)) {
+            $response->deleteFileAfterSend();
+        }
+
+        return $response;
     }
 
     #[Route("/{identifier}/info.json", name: "info")]

@@ -12,6 +12,8 @@
 
 namespace TheliaLibrary\Service;
 
+use Imagine\Exception\InvalidArgumentException as ImagineInvalidArgumentException;
+use Imagine\Exception\OutOfBoundsException as ImagineOutOfBoundsException;
 use Imagine\Gd\Imagine;
 use Imagine\Gmagick\Imagine as GmagickImagine;
 use Imagine\Image\Box;
@@ -35,6 +37,20 @@ use TheliaMain\PropelResolver;
 class ImageService implements ResetInterface
 {
     public const MAX_ALLOWED_SIZE_FACTOR = 2;
+
+    /**
+     * Rendered copies stored for one source image. Requests beyond are still answered,
+     * from a temporary file, so the public directory cannot grow without bound.
+     */
+    public const MAX_STORED_VARIANTS_PER_IMAGE = 100;
+
+    /**
+     * Largest side an upscaled rendering may reach when twice the source is smaller:
+     * a 50 px thumbnail can still be asked at 150 px, never at 99999 px.
+     */
+    public const MAX_UPSCALED_EDGE = 2000;
+
+    private const TEMPORARY_VARIANT_PREFIX = 'thelia-library-';
     public const LIBRARY = 'library';
     public const PAGE = 'page';
 
@@ -152,6 +168,11 @@ class ImageService implements ResetInterface
         return "/image-library/$identifier/$region/$size/$rotation/$quality.$format";
     }
 
+    /**
+     * The file of one rendering of a library image, written under the public directory on
+     * the first request. Every segment is checked before anything touches the disk; see
+     * formattedImagePath() for the bound on stored copies.
+     */
     public function geFormattedImage(
         $identifier,
         $region,
@@ -160,31 +181,94 @@ class ImageService implements ResetInterface
         $quality,
         $format,
     ) {
-        if (!\in_array(strtolower($format), ['jpg', 'jpeg', 'png', 'gif', 'jp2', 'webp'])) {
-            throw new HttpException(400, 'Bad format value');
+        $request = ImageVariantRequest::fromUrlSegments((string) $region, (string) $size, (string) $rotation, (string) $quality, (string) $format);
+
+        if (!ctype_digit((string) $identifier)) {
+            throw new HttpException(404, 'Image not found');
+        }
+        $identifier = (int) $identifier;
+
+        return $this->formattedImagePath(
+            THELIA_WEB_DIR.'image-library'.DS.$identifier,
+            fn (): ImageInterface => $this->openImage($identifier),
+            $request,
+        );
+    }
+
+    /**
+     * Renders the request from the source the closure opens, stores the copy under
+     * $variantDirectory and returns its path. A copy already stored is returned as is.
+     *
+     * Each new spelling of a request is a new file: past MAX_STORED_VARIANTS_PER_IMAGE copies
+     * for one source, the rendering goes to a temporary file instead, which the caller deletes
+     * once sent (isTemporaryVariant()).
+     *
+     * @param \Closure(): ImageInterface $openSource
+     */
+    public function formattedImagePath(string $variantDirectory, \Closure $openSource, ImageVariantRequest $request): string
+    {
+        $storedPath = $variantDirectory.DS.$request->relativePath();
+
+        if (is_file($storedPath)) {
+            return $storedPath;
         }
 
-        $formattedImagePath = THELIA_WEB_DIR.'image-library'.DS.$identifier.DS.$region.DS.$size.DS.$rotation;
-        if (!is_dir($formattedImagePath)) {
-            if (!@mkdir($formattedImagePath, 0755, true)) {
-                throw new \RuntimeException(\sprintf('Failed to create %s file in cache directory', $formattedImagePath));
+        try {
+            $image = $openSource();
+            $image = $this->applyRegion($image, $request->region);
+            $image = $this->applySize($image, $request->size);
+            $image = $this->applyRotation($image, $request->rotation, $request->format);
+            $image = $this->applyQuality($image, $request->quality);
+        } catch (ImagineInvalidArgumentException|ImagineOutOfBoundsException) {
+            throw new HttpException(400, 'Size out of bound');
+        }
+
+        if ($this->storedVariantCount($variantDirectory) >= self::MAX_STORED_VARIANTS_PER_IMAGE) {
+            $temporaryPath = tempnam(sys_get_temp_dir(), self::TEMPORARY_VARIANT_PREFIX);
+            if (false === $temporaryPath) {
+                throw new \RuntimeException('Failed to create a temporary image file');
+            }
+            $image->save($temporaryPath, ['format' => $request->format]);
+
+            return $temporaryPath;
+        }
+
+        $directory = \dirname($storedPath);
+        if (!is_dir($directory) && !@mkdir($directory, 0755, true) && !is_dir($directory)) {
+            throw new \RuntimeException(\sprintf('Failed to create %s file in cache directory', $directory));
+        }
+
+        $image->save($storedPath);
+
+        return $storedPath;
+    }
+
+    /**
+     * Whether formattedImagePath() returned a rendering it did not store, to delete once sent.
+     */
+    public function isTemporaryVariant(string $path): bool
+    {
+        return \dirname($path) === rtrim(sys_get_temp_dir(), DS)
+            && str_starts_with(basename($path), self::TEMPORARY_VARIANT_PREFIX);
+    }
+
+    private function storedVariantCount(string $variantDirectory): int
+    {
+        if (!is_dir($variantDirectory)) {
+            return 0;
+        }
+
+        $count = 0;
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($variantDirectory, \FilesystemIterator::SKIP_DOTS)
+        );
+        foreach ($files as $file) {
+            if ($file->isFile() && ++$count >= self::MAX_STORED_VARIANTS_PER_IMAGE) {
+                break;
             }
         }
 
-        $formattedImagePath .= DS.$quality.'.'.$format;
-
-        if (file_exists($formattedImagePath)) {
-            return $formattedImagePath;
-        }
-
-        $image = $this->openImage($identifier);
-        $image = $this->applyRegion($image, $region);
-        $image = $this->applySize($image, $size);
-        $image = $this->applyRotation($image, $rotation, $format);
-        $image = $this->applyQuality($image, $quality);
-        $image->save($formattedImagePath);
-
-        return $formattedImagePath;
+        return $count;
     }
 
     public function applyRegion(ImageInterface $image, $region)
@@ -269,6 +353,8 @@ class ImageService implements ResetInterface
                 throw new HttpException(400, 'Size out of bound');
             }
 
+            $this->assertWithinUpscaleBound($image, (float) $percent * $width / 100, (float) $percent * $height / 100);
+
             return $image->resize(
                 new Box(
                     $percent * $width / 100,
@@ -298,6 +384,11 @@ class ImageService implements ResetInterface
             throw new HttpException(400, 'Size out of bound');
         }
 
+        $this->assertWithinUpscaleBound($image, (float) $newWidth, (float) $newHeight);
+        if ($borders) {
+            $this->assertWithinUpscaleBound($image, (float) $values[0], (float) $values[1]);
+        }
+
         $resizedImage = $image->resize(
             new Box(
                 $newWidth,
@@ -319,6 +410,20 @@ class ImageService implements ResetInterface
         }
 
         return $resizedImage;
+    }
+
+    /**
+     * Twice the source, or MAX_UPSCALED_EDGE for a source smaller than half of it: beyond,
+     * a single request would allocate an image of any size.
+     */
+    private function assertWithinUpscaleBound(ImageInterface $image, float $width, float $height): void
+    {
+        $size = $image->getSize();
+
+        if ($width > max($size->getWidth() * self::MAX_ALLOWED_SIZE_FACTOR, self::MAX_UPSCALED_EDGE)
+            || $height > max($size->getHeight() * self::MAX_ALLOWED_SIZE_FACTOR, self::MAX_UPSCALED_EDGE)) {
+            throw new HttpException(400, 'Size out of bound');
+        }
     }
 
     public function applyRotation(ImageInterface $image, $rotation, $format)

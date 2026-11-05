@@ -12,6 +12,7 @@
 
 namespace TheliaLibrary\Controller\Front;
 
+use Imagine\Image\ImageInterface;
 use Propel\Runtime\ActiveQuery\ModelCriteria;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,6 +23,7 @@ use Thelia\Model\ConfigQuery;
 use Thelia\Model\ProductImage;
 use Thelia\Tools\URL;
 use TheliaLibrary\Service\ImageService;
+use TheliaLibrary\Service\ImageVariantRequest;
 use TheliaMain\PropelResolver;
 
 #[Route("/legacy-image-library", name: "legacy_image_library_")]
@@ -38,33 +40,21 @@ class LegacyImageController extends BaseFrontController
         $format,
         ImageService $imageService
     ) {
+        $request = ImageVariantRequest::fromUrlSegments((string) $region, (string) $size, (string) $rotation, (string) $quality, (string) $format);
         $sourceFilePath = $this->getSourceFilePath($itemType, $imageId);
 
-        if (!\in_array(strtolower($format), ['jpg', 'jpeg', 'png', 'gif', 'jp2', 'webp'])) {
-            throw new HttpException(400, 'Bad format value');
+        $imagePath = $imageService->formattedImagePath(
+            THELIA_WEB_DIR.'legacy-image-library'.DS.$itemType.'_image_'.(int) $imageId,
+            static fn (): ImageInterface => $imageService->getImagineInstance()->open($sourceFilePath),
+            $request,
+        );
+
+        $response = new BinaryFileResponse($imagePath);
+        if ($imageService->isTemporaryVariant($imagePath)) {
+            $response->deleteFileAfterSend();
         }
 
-        $formattedImagePath = THELIA_WEB_DIR.'legacy-image-library'.DS.$itemType.'_image_'.$imageId.DS.$region.DS.$size.DS.$rotation;
-        if (!is_dir($formattedImagePath)) {
-            if (!@mkdir($formattedImagePath, 0755, true)) {
-                throw new \RuntimeException(sprintf('Failed to create %s file in cache directory', $formattedImagePath));
-            }
-        }
-
-        $formattedImagePath .= DS.$quality.'.'.$format;
-
-        if (file_exists($formattedImagePath)) {
-            return new BinaryFileResponse($formattedImagePath);
-        }
-
-        $image = $imageService->getImagineInstance()->open($sourceFilePath);
-        $image = $imageService->applyRegion($image, $region);
-        $image = $imageService->applySize($image, $size);
-        $image = $imageService->applyRotation($image, $rotation, $format);
-        $image = $imageService->applyQuality($image, $quality);
-        $image->save($formattedImagePath);
-
-        return new BinaryFileResponse($formattedImagePath);
+        return $response;
     }
 
     #[Route("/{itemType}_image_{imageId}/info.json", name: "info")]
@@ -109,7 +99,14 @@ class LegacyImageController extends BaseFrontController
 
     private function getSourceFilePath($itemType, $imageId)
     {
+        if (!preg_match('/^[A-Za-z]+$/', (string) $itemType) || !ctype_digit((string) $imageId)) {
+            throw new HttpException(404);
+        }
+
         $tableMapClass = PropelResolver::getTableMapByTableName($this->getSnakeFromCamelCase($itemType.'Image'));
+        if (null === $tableMapClass) {
+            throw new HttpException(404);
+        }
         $tableMap = new $tableMapClass();
 
         /** @var ModelCriteria $queryClass */
@@ -132,11 +129,17 @@ class LegacyImageController extends BaseFrontController
             $baseSourceFilePath = THELIA_ROOT.$baseSourceFilePath;
         }
 
-        return sprintf(
+        $sourceFilePath = sprintf(
             '%s/%s/%s',
             $baseSourceFilePath,
             $itemType,
             $image->getFile()
         );
+
+        if (!is_file($sourceFilePath)) {
+            throw new HttpException(404);
+        }
+
+        return $sourceFilePath;
     }
 }
