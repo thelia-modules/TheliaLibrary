@@ -6,7 +6,8 @@
   "require": {
     "thelia/installer": "^1.6",
     "thelia/core": "^3.2",
-    "liip/imagine-bundle": "^2.9"
+    "liip/imagine-bundle": "^2.9",
+    "enshrined/svg-sanitize": "^1.1.1"
   },
   "require-dev": {
     "roave/security-advisories": "dev-latest",
