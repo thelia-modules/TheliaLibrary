@@ -123,6 +123,19 @@ final class SvgDeliveryTest extends WebIntegrationTestCase
         self::assertSame([1, 1, 2, 2], [$information['width'], $information['height'], $information['maxWidth'], $information['maxHeight']]);
     }
 
+    public function testThePublicUrlOfAnSvgIgnoresTheRequestedFormat(): void
+    {
+        $image = $this->store(self::SVG, 'drawing.svg');
+
+        /** @var LibraryImageService $service */
+        $service = static::getContainer()->get(LibraryImageService::class);
+
+        self::assertSame(
+            '/image-library/'.$image->getId().'/full/200,100/0/default.svg',
+            $service->getImagePublicUrl($image, 200, 100, 'webp'),
+        );
+    }
+
     public function testEveryBreakpointOfAnSvgPointsAtTheStoredFile(): void
     {
         $image = $this->store(self::SVG, 'drawing.svg');

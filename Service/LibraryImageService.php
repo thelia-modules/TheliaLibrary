@@ -119,7 +119,10 @@ class LibraryImageService
             return null;
         }
 
-        $format = $format ?? pathinfo($fileName, \PATHINFO_EXTENSION);
+        // A drawing is only served as it is stored: no other format exists.
+        $format = $this->imageService->isSvg($image)
+            ? LibraryImageFileNamer::SVG_EXTENSION
+            : ($format ?? pathinfo($fileName, \PATHINFO_EXTENSION));
         $size = 'max';
         if ($width || $height) {
             $size = $width.','.$height;
