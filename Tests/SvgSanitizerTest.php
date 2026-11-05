@@ -73,6 +73,8 @@ final class SvgSanitizerTest extends TestCase
         yield 'cdata in a title' => ['<svg '.self::SVG.' viewBox="0 0 1 1"><title><![CDATA[><img src=x onerror=alert(1)>]]></title></svg>', '<img'];
         yield 'php in a comment' => ['<svg '.self::SVG.' viewBox="0 0 1 1"><!-- <?php system($_GET["c"]); ?> --></svg>', '<?php'];
         yield 'php in cdata' => ['<svg '.self::SVG.' viewBox="0 0 1 1"><text><![CDATA[a<?php system($_GET["c"]); ?>b]]></text></svg>', '<?php'];
+        yield 'tab in a remote url' => ['<svg '.self::SVG." viewBox=\"0 0 1 1\" style=\"background:url('ht\ttps://evil.example/p')\"/>", "\t"];
+        yield 'style sheet opened in a title' => ['<svg '.self::SVG.' viewBox="0 0 1 1"><title><style/><text>}x{} input{background:url(//evil.example/a)}</text></title><style>a{}</style></svg>', '<title><style'];
     }
 
     #[DataProvider('markupAnHtmlParserRereads')]
@@ -85,12 +87,50 @@ final class SvgSanitizerTest extends TestCase
         self::assertStringNotContainsString('<![CDATA[', $content);
     }
 
+    public function testItListsTheCommentsItRemovesOnce(): void
+    {
+        $result = $this->sanitize(
+            "<?xml version=\"1.0\"?>\n<!-- Generator: an editor -->\n<svg ".self::SVG.' viewBox="0 0 1 1"><!-- layer --><rect width="1" height="1"/></svg><!--><img src=x onerror=alert(1)>-->'
+        );
+
+        self::assertEquals([new SvgChange(SvgChangeKind::RemovedComment, '!--')], $result->changes);
+        self::assertStringNotContainsString('<!--', $result->content);
+        self::assertStringContainsString('<rect', $result->content);
+    }
+
     public function testItKeepsTheTextOfACdataSectionAsEscapedText(): void
     {
         $result = $this->sanitize('<svg '.self::SVG.' viewBox="0 0 1 1"><style><![CDATA[g > rect { fill: red; }]]></style></svg>');
 
         self::assertSame([], $result->changes);
         self::assertStringContainsString('<style>g &gt; rect { fill: red; }</style>', $result->content);
+    }
+
+    public function testItDropsADoctypeThatDeclaresNothing(): void
+    {
+        $result = $this->sanitize(
+            "<?xml version=\"1.0\"?>\n<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n"
+            .'<svg '.self::SVG.' viewBox="0 0 4 2"><rect width="4" height="2"/></svg>'
+        );
+
+        self::assertEquals([new SvgChange(SvgChangeKind::RemovedElement, '!DOCTYPE')], $result->changes);
+        self::assertStringNotContainsString('DOCTYPE', $result->content);
+        self::assertStringContainsString('<rect', $result->content);
+    }
+
+    public function testItGivesTheSvgNamespaceToADrawingCopiedOutOfAPage(): void
+    {
+        $result = $this->sanitize(
+            "<!-- <svg> in a comment first -->\n<svg viewBox=\"0 0 16 16\" onclick=\"x()\"><path d=\"M0 0h16v16z\"/></svg>"
+        );
+
+        self::assertEquals([
+            new SvgChange(SvgChangeKind::RemovedComment, '!--'),
+            new SvgChange(SvgChangeKind::AddedNamespace, 'http://www.w3.org/2000/svg'),
+            new SvgChange(SvgChangeKind::RemovedAttribute, 'onclick'),
+        ], $result->changes);
+        self::assertStringStartsWith('<svg xmlns="http://www.w3.org/2000/svg"', $result->content);
+        self::assertStringContainsString('<path', $result->content);
     }
 
     public function testItAcceptsAUtf8ByteOrderMark(): void
@@ -114,6 +154,20 @@ final class SvgSanitizerTest extends TestCase
             new SvgChange(SvgChangeKind::RemovedElement, 'set'),
         ], $result->changes);
         self::assertStringNotContainsString('javascript', $result->content);
+    }
+
+    public function testItKeepsOnlyTheTextOfATitleOrADescription(): void
+    {
+        $result = $this->sanitize(
+            '<svg '.self::SVG.' viewBox="0 0 1 1"><title>Logo<image href="#a"/></title><desc>Plain <a href="#a">text</a></desc><rect id="a" width="1" height="1"/></svg>'
+        );
+
+        self::assertEquals([
+            new SvgChange(SvgChangeKind::RemovedElement, 'image'),
+            new SvgChange(SvgChangeKind::RemovedElement, 'a'),
+        ], $result->changes);
+        self::assertStringContainsString('<title>Logo</title>', $result->content);
+        self::assertStringContainsString('<desc>Plain </desc>', $result->content);
     }
 
     public function testItRemovesAProcessingInstruction(): void
@@ -168,7 +222,8 @@ final class SvgSanitizerTest extends TestCase
      */
     public static function unreadableDocuments(): iterable
     {
-        yield 'doctype' => ['<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg '.self::SVG.' viewBox="0 0 1 1"/>', UnreadableSvgReason::Doctype];
+        yield 'doctype with an empty internal subset' => ['<!DOCTYPE svg []><svg '.self::SVG.' viewBox="0 0 1 1"/>', UnreadableSvgReason::Doctype];
+        yield 'doctype with a subset behind a quoted >' => ['<!DOCTYPE svg SYSTEM "a>b" [<!ATTLIST svg onload CDATA "alert(1)">]><svg '.self::SVG.' viewBox="0 0 1 1"/>', UnreadableSvgReason::Doctype];
         yield 'doctype with an attribute list' => ['<!DOCTYPE svg [<!ATTLIST svg onload CDATA "alert(1)">]><svg '.self::SVG.' viewBox="0 0 1 1"/>', UnreadableSvgReason::Doctype];
         yield 'entity' => ['<!DOCTYPE svg [<!ENTITY a "aaaa">]><svg '.self::SVG.' viewBox="0 0 1 1"><text>&a;</text></svg>', UnreadableSvgReason::Entity];
         yield 'utf-16' => ["\xFF\xFE".mb_convert_encoding('<svg '.self::SVG.' viewBox="0 0 1 1"/>', 'UTF-16LE', 'UTF-8'), UnreadableSvgReason::NotUtf8];
@@ -177,8 +232,10 @@ final class SvgSanitizerTest extends TestCase
         yield 'broken xml' => ['<svg '.self::SVG.' viewBox="0 0 1 1"><g></svg>', UnreadableSvgReason::MalformedXml];
         yield 'empty' => ['  ', UnreadableSvgReason::MalformedXml];
         yield 'html root' => ['<html><body><svg '.self::SVG.' viewBox="0 0 1 1"/></body></html>', UnreadableSvgReason::NotSvgRoot];
+        yield 'no namespace and an explicit empty one' => ['<svg xmlns="" viewBox="0 0 1 1"/>', UnreadableSvgReason::MalformedXml];
         yield 'svg root in another namespace' => ['<svg xmlns="http://www.w3.org/1999/xhtml" viewBox="0 0 1 1"/>', UnreadableSvgReason::NotSvgRoot];
         yield 'over the size cap' => ['<svg '.self::SVG.' viewBox="0 0 1 1"><!--'.str_repeat('a', SvgSanitizer::MAXIMUM_BYTES).'--></svg>', UnreadableSvgReason::TooLarge];
+        yield 'more elements than the cap' => ['<svg '.self::SVG.' viewBox="0 0 1 1">'.str_repeat('<g/>', SvgSanitizer::MAXIMUM_ELEMENTS).'</svg>', UnreadableSvgReason::TooLarge];
         yield 'no size' => ['<svg '.self::SVG.'><rect width="1" height="1"/></svg>', UnreadableSvgReason::NoDimensions];
         yield 'relative size only' => ['<svg '.self::SVG.' width="100%" height="100%"/>', UnreadableSvgReason::NoDimensions];
         yield 'empty viewBox and no size' => ['<svg '.self::SVG.' viewBox="0 0 0 0"/>', UnreadableSvgReason::NoDimensions];

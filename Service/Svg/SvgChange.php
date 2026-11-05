@@ -16,8 +16,9 @@ namespace TheliaLibrary\Service\Svg;
 
 /**
  * One change the cleaning made. The subject is the element or attribute name
- * as written in the document (`script`, `onload`, `xlink:href`), or the
- * viewBox value that was added.
+ * as written in the document (`script`, `onload`, `xlink:href`, `!DOCTYPE`,
+ * `?php` for an instruction, `!--` for the comments), the viewBox value or
+ * the namespace that was added.
  */
 final readonly class SvgChange
 {

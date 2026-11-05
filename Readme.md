@@ -113,15 +113,19 @@ The library now stores SVG drawings. A submitted SVG goes through
 [enshrined/svg-sanitize](https://github.com/darylldoyle/svg-sanitizer) behind checks of
 the module's own:
 
-- refused, with the reason, when it cannot be read safely: a DOCTYPE or an entity,
-  bytes that are not UTF-8, broken XML, a root that is not `<svg>`, more than 5 MiB,
-  or no size at all (neither a `viewBox` nor an absolute `width` and `height`);
+- refused, with the reason, when it cannot be read safely: a DOCTYPE that declares
+  something (an internal subset) or an entity, bytes that are not UTF-8, broken XML,
+  a root that is not `<svg>`, more than 5 MiB or 50,000 elements, or no size at all
+  (neither a `viewBox` nor an absolute `width` and `height`);
 - otherwise cleaned: scripts, event handlers, animations, `foreignObject` and remote
-  references leave the file, and a missing `viewBox` is added from `width` and
-  `height`. Comments leave too, and CDATA sections become escaped text: an HTML page
-  that inlines the drawing reads both differently from an XML parser. When the
-  cleaning removed nothing and the file holds neither, the submitted bytes are stored
-  as they are.
+  references leave the file, so does a DOCTYPE that declares nothing (the "SVG 1.1"
+  line some editors write), a drawing copied out of an HTML page gets the SVG
+  namespace, and a missing `viewBox` is added from `width` and `height`. Comments
+  leave too, CDATA sections become escaped text, and a `title` or a `desc` keeps
+  its text only: an HTML page that inlines the drawing reads all three differently
+  from an XML parser. When the cleaning removed nothing, the submitted bytes are
+  stored as they are, unless they hold a comment, a CDATA section or a tab or line
+  break inside an attribute value.
 
 SVG files stored before 2.4.0 were never cleaned: they keep answering 400 at the SVG
 address until they are uploaded again.

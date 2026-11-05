@@ -20,4 +20,6 @@ enum SvgChangeKind: string
     case RemovedAttribute = 'removed_attribute';
     case ExternalReference = 'external_reference';
     case AddedViewBox = 'added_viewbox';
+    case AddedNamespace = 'added_namespace';
+    case RemovedComment = 'removed_comment';
 }
