@@ -16,8 +16,12 @@ namespace TheliaLibrary\Tests;
 
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\File\File;
+use TheliaLibrary\Exception\UnreadableSvgException;
 use TheliaLibrary\Exception\UnsupportedLibraryImageException;
 use TheliaLibrary\Service\LibraryImageFileNamer;
+use TheliaLibrary\Service\Svg\SvgChangeDetector;
+use TheliaLibrary\Service\Svg\SvgSanitizer;
+use TheliaLibrary\Service\Svg\UnreadableSvgReason;
 
 final class LibraryImageFileNamerTest extends TestCase
 {
@@ -39,7 +43,7 @@ final class LibraryImageFileNamerTest extends TestCase
     {
         $file = $this->pngFile('picture.png');
 
-        $name = (new LibraryImageFileNamer())->generateFileName($file);
+        $name = $this->namer()->generateFileName($file);
 
         self::assertMatchesRegularExpression('/^[0-9a-f]{20}\.png$/', $name);
         self::assertStringNotContainsString('picture', $name);
@@ -49,7 +53,7 @@ final class LibraryImageFileNamerTest extends TestCase
     {
         $file = $this->pngFile('picture.jpg');
 
-        self::assertStringEndsWith('.png', (new LibraryImageFileNamer())->generateFileName($file));
+        self::assertStringEndsWith('.png', $this->namer()->generateFileName($file));
     }
 
     public function testItRejectsAScriptWearingAnImageExtension(): void
@@ -58,19 +62,72 @@ final class LibraryImageFileNamerTest extends TestCase
 
         $this->expectException(UnsupportedLibraryImageException::class);
 
-        (new LibraryImageFileNamer())->generateFileName($file);
+        $this->namer()->generateFileName($file);
     }
 
-    public function testItRejectsAnSvgDocument(): void
+    public function testItNamesAnSvgItCanRead(): void
+    {
+        $file = $this->temporaryFile(
+            'drawing.png',
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><script>x()</script></svg>'
+        );
+
+        self::assertMatchesRegularExpression('/^[0-9a-f]{20}\.svg$/', $this->namer()->generateFileName($file));
+    }
+
+    public function testItFindsAnSvgTheContentDetectionCallsText(): void
     {
         $file = $this->temporaryFile(
             'drawing.svg',
-            '<svg xmlns="http://www.w3.org/2000/svg"><script>x()</script></svg>'
+            "<!-- exported -->\n\n<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\"/>"
         );
 
-        $this->expectException(UnsupportedLibraryImageException::class);
+        self::assertSame('text/plain', $file->getMimeType());
+        self::assertSame('svg', $this->namer()->resolveExtension($file));
+    }
 
-        (new LibraryImageFileNamer())->generateFileName($file);
+    public function testItFindsTheRootOfAnSvgAfterALongComment(): void
+    {
+        $file = $this->temporaryFile(
+            'drawing.svg',
+            '<!-- '.str_repeat('exported by a tool that writes a lot ', 300)."-->\n"
+            .'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"/>'
+        );
+
+        self::assertSame('svg', $this->namer()->resolveExtension($file));
+    }
+
+    public function testItRejectsAnSvgItCannotReadSafely(): void
+    {
+        $file = $this->temporaryFile(
+            'drawing.svg',
+            '<!DOCTYPE svg [<!ATTLIST svg onload CDATA "x()">]><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"/>'
+        );
+
+        try {
+            $this->namer()->generateFileName($file);
+        } catch (UnreadableSvgException $exception) {
+            self::assertSame(UnreadableSvgReason::Doctype, $exception->reason);
+
+            return;
+        }
+
+        self::fail('The SVG was not refused.');
+    }
+
+    public function testItRejectsTextThatIsNotAnSvg(): void
+    {
+        $file = $this->temporaryFile('notes.svg', 'Nothing but notes about an <svg> element.');
+
+        try {
+            $this->namer()->generateFileName($file);
+        } catch (UnreadableSvgException $exception) {
+            self::assertSame(UnreadableSvgReason::MalformedXml, $exception->reason);
+
+            return;
+        }
+
+        self::fail('The text was not refused.');
     }
 
     public function testItRejectsAnImageHeaderFollowedByAnythingElse(): void
@@ -79,14 +136,14 @@ final class LibraryImageFileNamerTest extends TestCase
 
         $this->expectException(UnsupportedLibraryImageException::class);
 
-        (new LibraryImageFileNamer())->generateFileName($file);
+        $this->namer()->generateFileName($file);
     }
 
     public function testItNamesAnMp4VideoAfterItsContent(): void
     {
         $file = $this->mp4File('clip.MOV');
 
-        $name = (new LibraryImageFileNamer())->generateFileName($file);
+        $name = $this->namer()->generateFileName($file);
 
         self::assertMatchesRegularExpression('/^[0-9a-f]{20}\.mp4$/', $name);
     }
@@ -97,7 +154,7 @@ final class LibraryImageFileNamerTest extends TestCase
 
         $this->expectException(UnsupportedLibraryImageException::class);
 
-        (new LibraryImageFileNamer())->generateFileName($file);
+        $this->namer()->generateFileName($file);
     }
 
     private function mp4File(string $name): File
@@ -124,6 +181,11 @@ final class LibraryImageFileNamerTest extends TestCase
         );
 
         return $this->temporaryFile($name, (string) $contents);
+    }
+
+    private function namer(): LibraryImageFileNamer
+    {
+        return new LibraryImageFileNamer(new SvgSanitizer(new SvgChangeDetector()));
     }
 
     private function temporaryFile(string $name, string $contents): File

@@ -18,6 +18,6 @@ namespace TheliaLibrary\Exception;
  * Raised when a submitted file is not one of the image formats the library
  * stores. Callers turn it into a 4xx answer, never into a 500.
  */
-final class UnsupportedLibraryImageException extends \RuntimeException
+class UnsupportedLibraryImageException extends \RuntimeException
 {
 }

@@ -11,5 +11,5 @@
  */
 
 return [
-    'Only JPEG, PNG, GIF, WebP and BMP images can be stored in the library.' => 'Seules les images JPEG, PNG, GIF, WebP et BMP peuvent être enregistrées dans la médiathèque.',
+    'Only JPEG, PNG, GIF, WebP, BMP and SVG images can be stored in the library.' => 'Seules les images JPEG, PNG, GIF, WebP, BMP et SVG peuvent être enregistrées dans la médiathèque.',
 ];

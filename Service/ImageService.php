@@ -532,6 +532,60 @@ class ImageService implements ResetInterface
 
     public function openImage($identifier)
     {
+        [$imageModel, $path] = $this->findStoredFile($identifier);
+
+        // Imagine cannot draw an SVG: a cleaned one is only served as it is
+        // stored, and one stored before the library cleaned them must not
+        // reach ImageMagick either.
+        if (str_ends_with(strtolower($path), '.'.LibraryImageFileNamer::SVG_EXTENSION)) {
+            throw new HttpException(400, 'Bad format value');
+        }
+
+        return $this->getImagineInstance()->open($path);
+    }
+
+    /**
+     * An SVG the library cleaned when it stored it: recorded as SVG, under a
+     * name the library generated. A `.svg` file stored before 2.4.0 was
+     * never cleaned, whether a type was recorded for it or not: it is not
+     * served as SVG.
+     */
+    public function isSvg(LibraryImage $image): bool
+    {
+        return 'image/svg+xml' === $image->getMimeType()
+            && 1 === preg_match(LibraryImageFileNamer::STORED_SVG_NAME_PATTERN, (string) $this->getImageFileName($image));
+    }
+
+    /**
+     * The stored SVG of an image, served as it is: no region, size, rotation
+     * or quality applies to a drawing the browser scales itself.
+     */
+    public function getSvgFilePath(int|string $identifier): string
+    {
+        [$imageModel, $path] = $this->findStoredFile($identifier);
+
+        if (!$this->isSvg($imageModel)) {
+            throw new HttpException(400, 'Bad format value');
+        }
+
+        return $path;
+    }
+
+    /**
+     * The image whose file is on disk, or a 404.
+     */
+    public function findStoredImage(int|string $identifier): LibraryImage
+    {
+        [$imageModel] = $this->findStoredFile($identifier);
+
+        return $imageModel;
+    }
+
+    /**
+     * @return array{LibraryImage, string}
+     */
+    private function findStoredFile(int|string $identifier): array
+    {
         $imageModel = LibraryImageQuery::create()->filterById($identifier)->findOne();
 
         // A video of the library is not an image: the image stack cannot open
@@ -549,7 +603,7 @@ class ImageService implements ResetInterface
             throw new HttpException(404, 'Image not found');
         }
 
-        return $this->getImagineInstance()->open($path);
+        return [$imageModel, $path];
     }
 
     public function getImagineInstance()
@@ -713,7 +767,17 @@ class ImageService implements ResetInterface
 
         foreach ($imagesData as $data) {
             $sources = [];
-            if ($data['path']) {
+            if ($data['path'] && isset($data['image_id']) && true === ($data['is_svg'] ?? false)) {
+                // No filter can draw an SVG: every breakpoint gets the file as
+                // it is stored, which the browser scales itself.
+                foreach (array_keys($filters) as $breakpoint) {
+                    $sources[] = [
+                        'breakpoint' => $breakpoint,
+                        'url' => $this->getUrlForImage($data['image_id'], LibraryImageFileNamer::SVG_EXTENSION),
+                        'variants' => [],
+                    ];
+                }
+            } elseif ($data['path']) {
                 $offersModernFormats = $this->variantService->offersModernFormats();
 
                 foreach ($filters as $breakpoint => $filter) {
@@ -758,6 +822,8 @@ class ImageService implements ResetInterface
                 'path' => $this->getImageFileName($image),
                 'title' => $image->getTitle(),
                 'id' => $image->getTitle(),
+                'image_id' => $image->getId(),
+                'is_svg' => $this->isSvg($image),
             ];
         }
 
