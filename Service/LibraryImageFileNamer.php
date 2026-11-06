@@ -41,11 +41,18 @@ final class LibraryImageFileNamer
         'image/jpeg' => 'jpg',
         'image/png' => 'png',
         'image/webp' => 'webp',
+        'video/mp4' => 'mp4',
     ];
 
     /**
+     * The videos among those formats: stored as sent, never decoded by the
+     * image stack, served whole by the video route.
+     */
+    public const VIDEO_MIME_TYPES = ['video/mp4'];
+
+    /**
      * @throws UnsupportedLibraryImageException when the content is not one of
-     *                                          the stored image formats
+     *                                          the stored formats
      */
     public function generateFileName(File $file): string
     {
@@ -69,6 +76,12 @@ final class LibraryImageFileNamer
             throw new UnsupportedLibraryImageException(
                 \sprintf('Unsupported image format: %s.', $mimeType ?? 'unknown')
             );
+        }
+
+        // libmagic names video/mp4 only a file that opens on an ftyp box. A
+        // video is never decoded here: it is stored and served as sent.
+        if (\in_array($mimeType, self::VIDEO_MIME_TYPES, true)) {
+            return self::EXTENSION_BY_MIME_TYPE[$mimeType];
         }
 
         // getMimeType() alone accepts a file whose first bytes look like an

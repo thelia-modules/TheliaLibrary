@@ -173,6 +173,33 @@ class ImageService implements ResetInterface
      * the first request. Every segment is checked before anything touches the disk; see
      * formattedImagePath() for the bound on stored copies.
      */
+    public function getUrlForVideo(int $identifier): string
+    {
+        return "/video-library/$identifier.mp4";
+    }
+
+    /**
+     * The file of a video of the library, or a 404: an unknown id, a row that
+     * is not a video and a file gone from the disk are all missing videos.
+     */
+    public function videoPath(int $identifier): string
+    {
+        $video = LibraryImageQuery::create()->findPk($identifier);
+        $fileName = $video?->getFileName();
+
+        if (null === $video || !$video->isVideo() || null === $fileName) {
+            throw new HttpException(404, 'Video not found');
+        }
+
+        $path = TheliaLibrary::getImageDirectory().$fileName;
+
+        if (!is_file($path)) {
+            throw new HttpException(404, 'Video not found');
+        }
+
+        return $path;
+    }
+
     public function geFormattedImage(
         $identifier,
         $region,
@@ -507,7 +534,9 @@ class ImageService implements ResetInterface
     {
         $imageModel = LibraryImageQuery::create()->filterById($identifier)->findOne();
 
-        if (null === $imageModel) {
+        // A video of the library is not an image: the image stack cannot open
+        // it, and the video route serves it.
+        if (null === $imageModel || $imageModel->isVideo()) {
             throw new HttpException(404, 'Image not found');
         }
         $fileName = $this->getImageFileName($imageModel);

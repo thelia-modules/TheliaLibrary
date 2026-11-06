@@ -13,6 +13,7 @@
 namespace TheliaLibrary\Model;
 
 use TheliaLibrary\Model\Base\LibraryImage as BaseLibraryImage;
+use TheliaLibrary\Service\LibraryImageFileNamer;
 
 /**
  * Skeleton subclass for representing a row from the 'library_image' table.
@@ -23,4 +24,12 @@ use TheliaLibrary\Model\Base\LibraryImage as BaseLibraryImage;
  */
 class LibraryImage extends BaseLibraryImage
 {
+    /**
+     * A video of the library: served whole by the video route, never by the
+     * image renderings.
+     */
+    public function isVideo(): bool
+    {
+        return \in_array($this->getMimeType(), LibraryImageFileNamer::VIDEO_MIME_TYPES, true);
+    }
 }

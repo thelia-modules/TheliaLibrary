@@ -19,9 +19,18 @@ For now this module doesn't have an interface, only an api documented on {your_w
 
 Uploaded pictures are stored in `local/library/images` (configurable through the
 `image_directory` module configuration). The module only stores JPEG, PNG, GIF,
-WebP and BMP files: the format is read from the content of the file, the
-extension is derived from that format, and the stored name is generated, so
-neither the name nor the extension sent by the browser is reused.
+WebP and BMP pictures, and MP4 videos: the format is read from the content of
+the file, the extension is derived from that format, and the stored name is
+generated, so neither the name nor the extension sent by the browser is reused.
+
+## Videos
+
+An MP4 file sent to `LibraryImageService` is stored as a library row whose
+`mime_type` is `video/mp4` (`LibraryImage::isVideo()`), with no width or height.
+It is served whole by `/video-library/{id}.mp4`, which answers the byte ranges a
+browser asks for as the visitor plays and seeks; `getImagePublicUrl()` gives
+that address. The image routes (`/image-library/…`) answer a video with a 404:
+it is never decoded nor resized. The API upload still accepts pictures only.
 
 The module also writes an `.htaccess` in that directory at activation, so that
 Apache serves it as static files only. nginx has no per-directory configuration;

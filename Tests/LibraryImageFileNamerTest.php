@@ -82,6 +82,38 @@ final class LibraryImageFileNamerTest extends TestCase
         (new LibraryImageFileNamer())->generateFileName($file);
     }
 
+    public function testItNamesAnMp4VideoAfterItsContent(): void
+    {
+        $file = $this->mp4File('clip.MOV');
+
+        $name = (new LibraryImageFileNamer())->generateFileName($file);
+
+        self::assertMatchesRegularExpression('/^[0-9a-f]{20}\.mp4$/', $name);
+    }
+
+    public function testItRejectsATextFileWearingAVideoExtension(): void
+    {
+        $file = $this->temporaryFile('clip.mp4', 'Not a video, only a name.');
+
+        $this->expectException(UnsupportedLibraryImageException::class);
+
+        (new LibraryImageFileNamer())->generateFileName($file);
+    }
+
+    private function mp4File(string $name): File
+    {
+        // The smallest file libmagic names video/mp4: an ftyp box (brand isom),
+        // then a moov box holding an empty mvhd. Written out, no encoder needed.
+        $box = static fn (string $type, string $payload = ''): string => pack('N', 8 + \strlen($payload)).$type.$payload;
+        $movieHeader = str_repeat("\0", 12).pack('NN', 1000, 0).pack('Nn', 0x10000, 0x100).str_repeat("\0", 10)
+            .pack('N9', 0x10000, 0, 0, 0, 0x10000, 0, 0, 0, 0x40000000).str_repeat("\0", 24).pack('N', 2);
+
+        return $this->temporaryFile(
+            $name,
+            $box('ftyp', 'isom'.pack('N', 512).'isomiso2avc1mp41').$box('moov', $box('mvhd', $movieHeader)).$box('free'),
+        );
+    }
+
     private function pngFile(string $name): File
     {
         // A 1x1 PNG, written out rather than generated, so the test does not

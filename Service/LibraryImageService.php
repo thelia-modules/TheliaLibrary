@@ -101,6 +101,10 @@ class LibraryImageService
             return null;
         }
 
+        if ($image->isVideo()) {
+            return $this->imageService->getUrlForVideo((int) $image->getId());
+        }
+
         $fileName = $this->imageService->getImageFileName($image);
 
         // An image row whose file is missing has no URL to offer, and asking
