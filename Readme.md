@@ -107,6 +107,29 @@ Here’s the exemple :
 })|raw }}
 ```
 
+## Upgrading to 2.5.0
+
+The public image addresses (`/image-library/{id}/{region}/{size}/{rotation}/{quality}.{format}`
+and `/legacy-image-library/…`) render and store any well-formed combination. A shop can now
+list the renderings it uses; every other address answers 404 before the source is opened or a
+file is written. Without the parameter nothing changes.
+
+```yaml
+# config/services.yaml
+parameters:
+    thelia_library.allowed_variants:
+        regions: [full]        # default [full]; `square`, or `crop` for any x,y,w,h and pct:x,y,w,h region
+        rotations: ['0']       # default ['0']
+        sizes:
+            - max
+            - '480,!'          # a size, spelled as in the URL (modifiers in any order)
+            - '320,*'          # a width, at the height of the image's own proportions (1 px tolerance)
+            - native           # the image's own width and height
+```
+
+`sizes` is required once the parameter is set. A `W,*` entry reads the stored width and height
+of the image only when the copy is not on disk yet; a copy already stored is served as before.
+
 ## Upgrading to 2.4.0
 
 The library now stores SVG drawings. A submitted SVG goes through
