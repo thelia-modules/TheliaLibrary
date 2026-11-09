@@ -24,6 +24,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Thelia\Test\IntegrationTestCase;
 use TheliaLibrary\Model\LibraryImage;
+use TheliaLibrary\Model\LibraryImageQuery;
 use TheliaLibrary\Service\ImageRegionRegistryInterface;
 use TheliaLibrary\Service\ImageService;
 use TheliaLibrary\Service\ImageVariantPolicy;
@@ -89,6 +90,16 @@ final class ImageServiceAllowedVariantsTest extends IntegrationTestCase
 
     public function testAProportionalSizeIsRenderedAtTheHeightOfTheSource(): void
     {
+        $path = $this->imageService->geFormattedImage((string) $this->imageId, 'full', '10,8', '0', 'default', 'png');
+
+        self::assertSame([10, 8], \array_slice(getimagesize($path), 0, 2));
+    }
+
+    public function testTheProportionsAreThoseOfTheFileNotOfAStaleRow(): void
+    {
+        $image = LibraryImageQuery::create()->findPk($this->imageId);
+        $image->setWidth(1000)->setHeight(1000)->save();
+
         $path = $this->imageService->geFormattedImage((string) $this->imageId, 'full', '10,8', '0', 'default', 'png');
 
         self::assertSame([10, 8], \array_slice(getimagesize($path), 0, 2));

@@ -240,9 +240,9 @@ class ImageService implements ResetInterface
     }
 
     /**
-     * Width and height of a stored image, as recorded when it was stored: the figures a
-     * template builds its sizes from, read without decoding the file. The file itself
-     * answers for a row that has none.
+     * Width and height of a stored image, read from the header of its file (no decoding), the
+     * figures a rendering is measured on. The row's own figures answer for a file that cannot
+     * be read: they can be stale after a file was replaced, which is why they come second.
      *
      * @return array{int, int}|null
      */
@@ -250,13 +250,16 @@ class ImageService implements ResetInterface
     {
         [$imageModel, $path] = $this->findStoredFile($identifier);
 
+        $dimensions = @getimagesize($path);
+        if (false !== $dimensions && $dimensions[0] > 0 && $dimensions[1] > 0) {
+            return [$dimensions[0], $dimensions[1]];
+        }
+
         if ($imageModel->getWidth() > 0 && $imageModel->getHeight() > 0) {
             return [(int) $imageModel->getWidth(), (int) $imageModel->getHeight()];
         }
 
-        $dimensions = @getimagesize($path);
-
-        return false === $dimensions ? null : [$dimensions[0], $dimensions[1]];
+        return null;
     }
 
     /**
