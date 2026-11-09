@@ -111,6 +111,53 @@ final class ImageVariantPolicyTest extends TestCase
         self::assertFalse(self::allowed(self::policy(self::CONFIGURATION), $region, $size, $rotation));
     }
 
+    public function testAProportionalSizeFollowsTheRegionNotTheWholeImage(): void
+    {
+        // A 400 x 600 zone of a 1000 x 750 image: 200 wide is 300 high.
+        $policy = self::policy(['regions' => ['full', 'crop'], 'sizes' => ['200,*']]);
+
+        self::assertTrue(self::allowed($policy, '0,100,400,600', '200,300'));
+        self::assertFalse(self::allowed($policy, '0,100,400,600', '200,150'));
+        // Cut at the edge of the image: 1000 - 800 = 200 wide left, 750 high.
+        self::assertTrue(self::allowed($policy, '800,0,500,750', '200,750'));
+        self::assertFalse(self::allowed($policy, '1000,0,100,100', '200,200'));
+        self::assertTrue(self::allowed(self::policy(['regions' => ['full', 'square'], 'sizes' => ['200,*']]), 'square', '200,200'));
+        self::assertTrue(self::allowed($policy, 'pct:0,0,50,100', '200,300'));
+    }
+
+    public function testTheRegionOwnSizeIsNative(): void
+    {
+        $policy = self::policy(['regions' => ['crop'], 'sizes' => ['native']]);
+
+        self::assertTrue(self::allowed($policy, '0,0,300,200', '300,200'));
+        self::assertFalse(self::allowed($policy, '0,0,300,200', '300,201'));
+    }
+
+    public function testARegisteredRegionIsServedOnlyWhenARegistryKnowsIt(): void
+    {
+        $policy = self::policy(['regions' => ['full', 'registered'], 'sizes' => ['max', '200,*']]);
+        $known = static fn (string $region): bool => '0,0,400,400' === $region;
+        $served = static function (string $region, string $size, ?\Closure $known) use ($policy): bool {
+            try {
+                $policy->assertAllowed(
+                    ImageVariantRequest::fromUrlSegments($region, $size, '0', 'default', 'webp'),
+                    static fn (): array => [self::SOURCE_WIDTH, self::SOURCE_HEIGHT],
+                    $known,
+                );
+            } catch (HttpException) {
+                return false;
+            }
+
+            return true;
+        };
+
+        self::assertTrue($served('0,0,400,400', 'max', $known));
+        self::assertTrue($served('0,0,400,400', '200,200', $known));
+        self::assertFalse($served('0,0,400,400', '200,100', $known));
+        self::assertFalse($served('1,1,400,400', 'max', $known));
+        self::assertFalse($served('0,0,400,400', 'max', null));
+    }
+
     public function testWithoutConfigurationEveryRequestIsAllowed(): void
     {
         $policy = self::policy(null);

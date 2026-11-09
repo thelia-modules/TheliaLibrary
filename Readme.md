@@ -118,14 +118,23 @@ file is written. Without the parameter nothing changes.
 # config/services.yaml
 parameters:
     thelia_library.allowed_variants:
-        regions: [full]        # default [full]; `square`, or `crop` for any x,y,w,h and pct:x,y,w,h region
+        regions: [full]        # default [full]; `square`; `registered` (see below); `crop` for any x,y,w,h and pct:x,y,w,h region
         rotations: ['0']       # default ['0']
         sizes:
             - max
             - '480,!'          # a size, spelled as in the URL (modifiers in any order)
-            - '320,*'          # a width, at the height of the image's own proportions (1 px tolerance)
-            - native           # the image's own width and height
+            - '320,*'          # a width, at the height of the proportions of the region asked (1 px tolerance)
+            - native           # the own width and height of the region asked
 ```
+
+`W,*` and `native` are measured on the region of the address: the whole image for `full`, the zone
+(cut at the edges of the image) for `x,y,w,h`, the smaller side for `square`.
+
+`registered` lets a module that frames its images say which frames it printed: a service
+implementing `TheliaLibrary\Service\ImageRegionRegistryInterface` (tagged automatically) is
+asked, for an image rendering that is not on disk yet, whether it knows the `x,y,w,h` region of
+the address. An unknown zone answers 404, so the zones of an image are the ones its pages print,
+not the ones a visitor invents. Without a registry nothing is registered; `crop` opens every zone.
 
 `sizes` is required once the parameter is set. A `W,*` entry reads the stored width and height
 of the image only when the copy is not on disk yet; a copy already stored is served as before.

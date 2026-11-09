@@ -43,15 +43,21 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
  * width, because a template never asks for more than the file holds. At most
  * one file per listed width and image: the height is not the visitor's to choose.
  *
+ * The proportions of a `W,*` size and the `native` size are those of the region the address
+ * asks for (`x,y,w,h` cut at the edges of the image, `square`, `pct:…`), not of the whole image.
+ *
  * Regions other than `full` and `square` are the visitor's to invent as well: they are
- * accepted only when listed, by name (`square`) or as `crop`, which allows any
- * `x,y,w,h` or `pct:x,y,w,h` region, with the sizes listed.
+ * accepted only when listed: `square` by name; `registered` for an `x,y,w,h` or `pct:…` region
+ * that a registry (ImageRegionRegistryInterface) knows for this image, which is how a module
+ * that frames its images tells the library which frames it printed; `crop` for any region,
+ * with the sizes listed.
  */
 final class ImageVariantPolicy
 {
     public const PARAMETER = 'thelia_library.allowed_variants';
 
     public const CROP = 'crop';
+    public const REGISTERED = 'registered';
     public const NATIVE = 'native';
 
     /** @var array{regions: list<string>, rotations: list<string>, sizes: list<string>, widths: list<int>, native: bool}|null */
@@ -68,12 +74,16 @@ final class ImageVariantPolicy
     }
 
     /**
-     * @param \Closure(): ?array{int, int}|null $sourceDimensions width and height of the source
-     *                                                            image, read only for a `W,*` size
+     * @param \Closure(): ?array{int, int}|null $sourceDimensions   width and height of the source
+     *                                                              image, read only for a `W,*` size
+     *                                                              or a region
+     * @param \Closure(string): bool|null       $regionIsRegistered whether a registry knows the region
+     *                                                              for this image, asked only for a
+     *                                                              region the policy lists as `registered`
      *
      * @throws HttpException 404 when the request is not allowed
      */
-    public function assertAllowed(ImageVariantRequest $request, ?\Closure $sourceDimensions = null): void
+    public function assertAllowed(ImageVariantRequest $request, ?\Closure $sourceDimensions = null, ?\Closure $regionIsRegistered = null): void
     {
         $allowed = $this->allowed();
 
@@ -81,9 +91,9 @@ final class ImageVariantPolicy
             return;
         }
 
-        if (!$this->regionIsAllowed($request->region, $allowed['regions'])
+        if (!$this->regionIsAllowed($request->region, $allowed['regions'], $regionIsRegistered)
             || !\in_array($request->rotation, $allowed['rotations'], true)
-            || !$this->sizeIsAllowed($request->size, $allowed, $sourceDimensions)) {
+            || !$this->sizeIsAllowed($request->size, $request->region, $allowed, $sourceDimensions)) {
             throw new HttpException(404, 'Image variant not allowed');
         }
     }
@@ -91,19 +101,59 @@ final class ImageVariantPolicy
     /**
      * @param list<string> $regions
      */
-    private function regionIsAllowed(string $region, array $regions): bool
+    private function regionIsAllowed(string $region, array $regions, ?\Closure $regionIsRegistered): bool
     {
         if (\in_array($region, $regions, true)) {
             return true;
         }
 
-        return \in_array(self::CROP, $regions, true) && 'full' !== $region && 'square' !== $region;
+        if ('full' === $region || 'square' === $region) {
+            return false;
+        }
+
+        return \in_array(self::CROP, $regions, true)
+            || (\in_array(self::REGISTERED, $regions, true) && null !== $regionIsRegistered && $regionIsRegistered($region));
+    }
+
+    /**
+     * Width and height of the part of the source a region keeps, as the renderer cuts it.
+     *
+     * @return array{int, int}|null null for a region that starts outside the source
+     */
+    private static function regionBox(string $region, int $sourceWidth, int $sourceHeight): ?array
+    {
+        if ('full' === $region) {
+            return [$sourceWidth, $sourceHeight];
+        }
+
+        if ('square' === $region) {
+            return [min($sourceWidth, $sourceHeight), min($sourceWidth, $sourceHeight)];
+        }
+
+        $percentage = str_starts_with($region, 'pct:');
+        $values = array_map('floatval', explode(',', str_replace('pct:', '', $region)));
+        if (4 !== \count($values)) {
+            return null;
+        }
+
+        [$x, $y, $width, $height] = $percentage
+            ? [$sourceWidth * $values[0] / 100, $sourceHeight * $values[1] / 100, $sourceWidth * $values[2] / 100, $sourceHeight * $values[3] / 100]
+            : $values;
+
+        if ($x >= $sourceWidth || $y >= $sourceHeight) {
+            return null;
+        }
+
+        $width = (int) round(min($width, $sourceWidth - $x));
+        $height = (int) round(min($height, $sourceHeight - $y));
+
+        return $width < 1 || $height < 1 ? null : [$width, $height];
     }
 
     /**
      * @param array{sizes: list<string>, widths: list<int>, native: bool} $allowed
      */
-    private function sizeIsAllowed(string $size, array $allowed, ?\Closure $sourceDimensions): bool
+    private function sizeIsAllowed(string $size, string $region, array $allowed, ?\Closure $sourceDimensions): bool
     {
         if (\in_array($size, $allowed['sizes'], true)) {
             return true;
@@ -124,7 +174,14 @@ final class ImageVariantPolicy
             return false;
         }
 
-        [$sourceWidth, $sourceHeight] = $source;
+        $box = self::regionBox($region, $source[0], $source[1]);
+
+        if (null === $box) {
+            return false;
+        }
+
+        // The proportions are those of the region the address asks for, not of the whole image.
+        [$sourceWidth, $sourceHeight] = $box;
 
         if ($allowed['native'] && $width === $sourceWidth && $height === $sourceHeight) {
             return true;
@@ -175,7 +232,7 @@ final class ImageVariantPolicy
         $regions = [];
         foreach ((array) ($configuration['regions'] ?? ['full']) as $region) {
             $region = (string) $region;
-            $regions[] = self::CROP === $region ? $region : ImageVariantRequest::fromUrlSegments($region, 'max', '0', 'default', 'jpg')->region;
+            $regions[] = \in_array($region, [self::CROP, self::REGISTERED], true) ? $region : ImageVariantRequest::fromUrlSegments($region, 'max', '0', 'default', 'jpg')->region;
         }
 
         $rotations = [];

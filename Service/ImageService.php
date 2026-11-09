@@ -24,6 +24,7 @@ use Imagine\Imagick\Imagine as ImagickImagine;
 use Liip\ImagineBundle\Imagine\Cache\CacheManager;
 use Propel\Runtime\ActiveQuery\Criteria;
 use Propel\Runtime\ActiveQuery\ModelCriteria;
+use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Contracts\Service\ResetInterface;
@@ -75,6 +76,8 @@ class ImageService implements ResetInterface
         private readonly CacheManager $cacheManager,
         private readonly ImageVariantService $variantService,
         private readonly ?ImageVariantPolicy $variantPolicy = null,
+        #[AutowireIterator(ImageRegionRegistryInterface::TAG)]
+        private readonly iterable $regionRegistries = [],
     ) {
     }
 
@@ -221,13 +224,25 @@ class ImageService implements ResetInterface
             fn (): ImageInterface => $this->openImage($identifier),
             $request,
             fn (): ?array => $this->storedImageDimensions($identifier),
+            fn (string $region): bool => $this->regionIsRegistered($identifier, $region),
         );
     }
 
+    private function regionIsRegistered(int $identifier, string $region): bool
+    {
+        foreach ($this->regionRegistries as $registry) {
+            if ($registry->isRegistered($identifier, $region)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
-     * Width and height of a stored image, as recorded when it was stored: the figures a
-     * template builds its sizes from, read without decoding the file. The file itself
-     * answers for a row that has none.
+     * Width and height of a stored image, read from the header of its file (no decoding), the
+     * figures a rendering is measured on. The row's own figures answer for a file that cannot
+     * be read: they can be stale after a file was replaced, which is why they come second.
      *
      * @return array{int, int}|null
      */
@@ -235,13 +250,16 @@ class ImageService implements ResetInterface
     {
         [$imageModel, $path] = $this->findStoredFile($identifier);
 
+        $dimensions = @getimagesize($path);
+        if (false !== $dimensions && $dimensions[0] > 0 && $dimensions[1] > 0) {
+            return [$dimensions[0], $dimensions[1]];
+        }
+
         if ($imageModel->getWidth() > 0 && $imageModel->getHeight() > 0) {
             return [(int) $imageModel->getWidth(), (int) $imageModel->getHeight()];
         }
 
-        $dimensions = @getimagesize($path);
-
-        return false === $dimensions ? null : [$dimensions[0], $dimensions[1]];
+        return null;
     }
 
     /**
@@ -260,8 +278,10 @@ class ImageService implements ResetInterface
      * @param \Closure(): ?array{int, int}|null  $sourceDimensions width and height of the source,
      *                                                             read without decoding it; the
      *                                                             policy asks only for a `W,*` size
+     *                                                             or a region
+     * @param \Closure(string): bool|null        $regionIsRegistered whether a registry knows the region
      */
-    public function formattedImagePath(string $variantDirectory, \Closure $openSource, ImageVariantRequest $request, ?\Closure $sourceDimensions = null): string
+    public function formattedImagePath(string $variantDirectory, \Closure $openSource, ImageVariantRequest $request, ?\Closure $sourceDimensions = null, ?\Closure $regionIsRegistered = null): string
     {
         $storedPath = $variantDirectory.DS.$request->relativePath();
 
@@ -269,7 +289,7 @@ class ImageService implements ResetInterface
             return $storedPath;
         }
 
-        $this->variantPolicy?->assertAllowed($request, $sourceDimensions);
+        $this->variantPolicy?->assertAllowed($request, $sourceDimensions, $regionIsRegistered);
 
         try {
             $image = $openSource();
