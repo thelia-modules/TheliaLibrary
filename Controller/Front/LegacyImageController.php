@@ -47,6 +47,11 @@ class LegacyImageController extends BaseFrontController
             THELIA_WEB_DIR.'legacy-image-library'.DS.$itemType.'_image_'.(int) $imageId,
             static fn (): ImageInterface => $imageService->getImagineInstance()->open($sourceFilePath),
             $request,
+            static function () use ($sourceFilePath): ?array {
+                $dimensions = @getimagesize($sourceFilePath);
+
+                return false === $dimensions ? null : [$dimensions[0], $dimensions[1]];
+            },
         );
 
         $response = new BinaryFileResponse($imagePath);

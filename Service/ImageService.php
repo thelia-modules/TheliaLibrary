@@ -73,7 +73,8 @@ class ImageService implements ResetInterface
     public function __construct(
         private RequestStack $requestStack,
         private readonly CacheManager $cacheManager,
-        private readonly ImageVariantService $variantService
+        private readonly ImageVariantService $variantService,
+        private readonly ?ImageVariantPolicy $variantPolicy = null,
     ) {
     }
 
@@ -219,7 +220,28 @@ class ImageService implements ResetInterface
             THELIA_WEB_DIR.'image-library'.DS.$identifier,
             fn (): ImageInterface => $this->openImage($identifier),
             $request,
+            fn (): ?array => $this->storedImageDimensions($identifier),
         );
+    }
+
+    /**
+     * Width and height of a stored image, as recorded when it was stored: the figures a
+     * template builds its sizes from, read without decoding the file. The file itself
+     * answers for a row that has none.
+     *
+     * @return array{int, int}|null
+     */
+    private function storedImageDimensions(int $identifier): ?array
+    {
+        [$imageModel, $path] = $this->findStoredFile($identifier);
+
+        if ($imageModel->getWidth() > 0 && $imageModel->getHeight() > 0) {
+            return [(int) $imageModel->getWidth(), (int) $imageModel->getHeight()];
+        }
+
+        $dimensions = @getimagesize($path);
+
+        return false === $dimensions ? null : [$dimensions[0], $dimensions[1]];
     }
 
     /**
@@ -230,15 +252,24 @@ class ImageService implements ResetInterface
      * for one source, the rendering goes to a temporary file instead, which the caller deletes
      * once sent (isTemporaryVariant()).
      *
-     * @param \Closure(): ImageInterface $openSource
+     * A request the ImageVariantPolicy does not allow answers 404 once the stored copy is
+     * ruled out, before the source is opened: a copy that is there costs no more than the
+     * lookup it always cost.
+     *
+     * @param \Closure(): ImageInterface         $openSource
+     * @param \Closure(): ?array{int, int}|null  $sourceDimensions width and height of the source,
+     *                                                             read without decoding it; the
+     *                                                             policy asks only for a `W,*` size
      */
-    public function formattedImagePath(string $variantDirectory, \Closure $openSource, ImageVariantRequest $request): string
+    public function formattedImagePath(string $variantDirectory, \Closure $openSource, ImageVariantRequest $request, ?\Closure $sourceDimensions = null): string
     {
         $storedPath = $variantDirectory.DS.$request->relativePath();
 
         if (is_file($storedPath)) {
             return $storedPath;
         }
+
+        $this->variantPolicy?->assertAllowed($request, $sourceDimensions);
 
         try {
             $image = $openSource();
