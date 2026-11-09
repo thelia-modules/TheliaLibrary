@@ -24,6 +24,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Thelia\Test\IntegrationTestCase;
 use TheliaLibrary\Model\LibraryImage;
+use TheliaLibrary\Service\ImageRegionRegistryInterface;
 use TheliaLibrary\Service\ImageService;
 use TheliaLibrary\Service\ImageVariantPolicy;
 use TheliaLibrary\Service\ImageVariantRequest;
@@ -132,5 +133,44 @@ final class ImageServiceAllowedVariantsTest extends IntegrationTestCase
         file_put_contents($stored, 'x');
 
         self::assertSame($stored, $this->imageService->geFormattedImage((string) $this->imageId, 'full', '21,21', '0', 'default', 'png'));
+    }
+
+    public function testARegisteredRegionIsRenderedAndAnotherOneIsNot(): void
+    {
+        $policy = new ImageVariantPolicy(new ContainerBag(new Container(new ParameterBag([
+            ImageVariantPolicy::PARAMETER => ['regions' => ['full', 'registered'], 'sizes' => ['max', '10,*']],
+        ]))));
+        $imageId = $this->imageId;
+        $registry = new class($imageId) implements ImageRegionRegistryInterface {
+            public function __construct(private readonly int $imageId)
+            {
+            }
+
+            public function isRegistered(int $imageId, string $region): bool
+            {
+                return $imageId === $this->imageId && '0,0,20,20' === $region;
+            }
+        };
+        $service = new ImageService(
+            $this->getService(RequestStack::class),
+            $this->getService(CacheManager::class),
+            $this->getService(ImageVariantService::class),
+            $policy,
+            [$registry],
+        );
+
+        $path = $service->geFormattedImage((string) $this->imageId, '0,0,20,20', '10,10', '0', 'default', 'png');
+        self::assertSame([10, 10], \array_slice(getimagesize($path), 0, 2));
+
+        foreach ([['0,0,21,21', 'max'], ['0,0,20,20', '10,5']] as [$region, $size]) {
+            try {
+                $service->geFormattedImage((string) $this->imageId, $region, $size, '0', 'default', 'png');
+                self::fail($region.' '.$size.' was rendered.');
+            } catch (HttpException $exception) {
+                self::assertSame(404, $exception->getStatusCode());
+            }
+        }
+
+        self::assertDirectoryDoesNotExist($this->variantDirectory.'/0,0,21,21');
     }
 }
