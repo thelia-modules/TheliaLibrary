@@ -148,6 +148,23 @@ final class LibraryImageFileNamerTest extends TestCase
         self::assertMatchesRegularExpression('/^[0-9a-f]{20}\.mp4$/', $name);
     }
 
+    public function testItNamesAQuickTimeAndAWebmVideoAfterTheirContent(): void
+    {
+        self::assertSame('video/quicktime', $this->brandedFile('clip.mp4', 'qt  ')->getMimeType(), 'Fixture: libmagic reads the qt brand as QuickTime.');
+        self::assertMatchesRegularExpression('/^[0-9a-f]{20}\.mov$/', $this->namer()->generateFileName($this->brandedFile('clip.mp4', 'qt  ')));
+
+        $webm = $this->temporaryFile('clip.mp4', "\x1A\x45\xDF\xA3\x42\x82\x84webm\x42\x87\x81\x04\x42\x85\x81\x02");
+        self::assertSame('video/webm', $webm->getMimeType(), 'Fixture: libmagic reads the EBML header as WebM.');
+        self::assertMatchesRegularExpression('/^[0-9a-f]{20}\.webm$/', $this->namer()->generateFileName($webm));
+    }
+
+    public function testEveryStoredVideoFormatIsListedAsAVideo(): void
+    {
+        foreach (['video/mp4', 'video/quicktime', 'video/webm'] as $type) {
+            self::assertContains($type, LibraryImageFileNamer::VIDEO_MIME_TYPES);
+        }
+    }
+
     public function testItRejectsATextFileWearingAVideoExtension(): void
     {
         $file = $this->temporaryFile('clip.mp4', 'Not a video, only a name.');
@@ -155,6 +172,13 @@ final class LibraryImageFileNamerTest extends TestCase
         $this->expectException(UnsupportedLibraryImageException::class);
 
         $this->namer()->generateFileName($file);
+    }
+
+    private function brandedFile(string $name, string $brand): File
+    {
+        $box = static fn (string $type, string $payload = ''): string => pack('N', 8 + \strlen($payload)).$type.$payload;
+
+        return $this->temporaryFile($name, $box('ftyp', $brand.pack('N', 0).$brand).$box('moov', $box('free')).$box('free'));
     }
 
     private function mp4File(string $name): File

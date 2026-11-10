@@ -56,13 +56,23 @@ final readonly class LibraryImageFileNamer
         'image/png' => 'png',
         'image/webp' => 'webp',
         'video/mp4' => 'mp4',
+        'video/quicktime' => 'mov',
+        'video/webm' => 'webm',
     ];
 
     /**
      * The videos among those formats: stored as sent, never decoded by the
      * image stack, served whole by the video route.
      */
-    public const VIDEO_MIME_TYPES = ['video/mp4'];
+    public const VIDEO_MIME_TYPES = ['video/mp4', 'video/quicktime', 'video/webm'];
+
+    /**
+     * The video type every file served by the video route ends up as: a file
+     * stored in another format (a phone's MOV, a WebM) is a raw upload that a
+     * caller converts to MP4 and puts back under the same id with
+     * `LibraryImageService::updateImage()`.
+     */
+    public const SERVED_VIDEO_MIME_TYPE = 'video/mp4';
 
     /**
      * What the content detection answers for an SVG: its own type, or plain
