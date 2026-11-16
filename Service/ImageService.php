@@ -28,6 +28,8 @@ use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Contracts\Service\ResetInterface;
+use Thelia\Domain\Media\Enum\ImageFormat;
+use Thelia\Domain\Media\Service\ImageFormatPolicy;
 use Thelia\Model\ConfigQuery;
 use Thelia\Model\ProductImageQuery;
 use TheliaLibrary\Model\LibraryImage;
@@ -78,6 +80,7 @@ class ImageService implements ResetInterface
         private readonly ?ImageVariantPolicy $variantPolicy = null,
         #[AutowireIterator(ImageRegionRegistryInterface::TAG)]
         private readonly iterable $regionRegistries = [],
+        private readonly ?ImageFormatPolicy $formatPolicy = null,
     ) {
     }
 
@@ -306,7 +309,7 @@ class ImageService implements ResetInterface
             if (false === $temporaryPath) {
                 throw new \RuntimeException('Failed to create a temporary image file');
             }
-            $image->save($temporaryPath, ['format' => $request->format]);
+            $image->save($temporaryPath, $this->saveOptions($request->format));
 
             return $temporaryPath;
         }
@@ -316,9 +319,37 @@ class ImageService implements ResetInterface
             throw new \RuntimeException(\sprintf('Failed to create %s file in cache directory', $directory));
         }
 
-        $image->save($storedPath);
+        $image->save($storedPath, $this->saveOptions($request->format));
 
         return $storedPath;
+    }
+
+    /**
+     * The encoder settings of a rendering: the shop's quality for its format, and the
+     * strongest lossless compression of a PNG.
+     *
+     * Without them the encoder decides, and Imagick keeps the quality of the source: a
+     * library image uploaded at quality 100 was rendered at 100 in every size and format,
+     * a 960 px wide WebP weighing 370 kB where quality 80 gives 69 kB. A JPEG takes the
+     * quality the shop sets for its product images, a WebP or an AVIF the one it sets for
+     * that format.
+     *
+     * @return array{format: string, quality: int, png_compression_level: int}
+     */
+    private function saveOptions(string $format): array
+    {
+        $modernFormat = ImageFormat::tryFrom($format);
+
+        $quality = null === $modernFormat
+            ? (int) ConfigQuery::read('default_images_quality_percent', 75)
+            : ($this->formatPolicy?->qualityFor($modernFormat) ?? $modernFormat->defaultQuality());
+
+        return [
+            'format' => $format,
+            'quality' => max(1, min(100, $quality)),
+            // Set apart: Imagine would otherwise derive it from the quality, and a PNG is lossless.
+            'png_compression_level' => 9,
+        ];
     }
 
     /**
